@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LICIT·LAB — Análisis de Contratación Pública</title>
+
+<!-- Stylesheets -->
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Instrument+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/styles.css">
+
+<!-- External libraries -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+/* IA TAB STYLES */
+.ia-spinner {
+  width: 20px; height: 20px;
+  border: 3px solid rgba(29,78,216,.2);
+  border-top-color: #1d4ed8;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.ia-lugar-filter {
+  width: 100%;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.ia-lugar-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ia-lugar-filter-title {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text2);
+  font-family: 'JetBrains Mono', monospace;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ia-lugar-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--red-dim);
+  color: var(--red);
+  border: 1px solid rgba(190,18,60,.25);
+  border-radius: 999px;
+  font-size: .65rem;
+  font-weight: 700;
+  padding: 1px 8px;
+  font-family: 'JetBrains Mono', monospace;
+  transition: opacity .2s;
+}
+.ia-lugar-option {
+  padding: 8px 14px;
+  font-size: .83rem;
+  cursor: pointer;
+  color: var(--text);
+  transition: background .12s;
+  border-bottom: 1px solid var(--border);
+}
+.ia-lugar-option:last-child { border-bottom: none; }
+.ia-lugar-option:hover,
+.ia-lugar-option.focused { background: var(--surface2); }
+.ia-lugar-option mark {
+  background: transparent;
+  color: var(--accent, #1d4ed8);
+  font-weight: 700;
+}
+.ia-lugar-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px 3px 12px;
+  border-radius: 20px;
+  background: var(--red-dim);
+  border: 1px solid rgba(190,18,60,.3);
+  color: var(--red);
+  font-size: .78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ia-lugar-tag-x {
+  cursor: pointer;
+  font-size: .9rem;
+  line-height: 1;
+  opacity: .7;
+  flex-shrink: 0;
+  transition: opacity .15s;
+}
+.ia-lugar-tag-x:hover { opacity: 1; }
+.ia-lugar-actions { display: flex; gap: 6px; }
+
+.ia-progress-bar {
+  height: 6px;
+  background: var(--surface2);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.ia-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #1d4ed8, #3b82f6);
+  border-radius: 99px;
+  transition: width .3s ease;
+}
+
+/* Cards */
+.ia-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 14px;
+  border-left: 4px solid transparent;
+  transition: box-shadow .2s;
+}
+.ia-card:hover { box-shadow: 0 4px 24px rgba(0,0,0,.4); }
+.ia-green  { border-left-color: #34d399; }
+.ia-amber  { border-left-color: #f5a623; }
+.ia-red    { border-left-color: #ff4d6d; }
+
+.ia-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.ia-card-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+.ia-verdict-icon { font-size: 1.4rem; flex-shrink: 0; margin-top: 2px; }
+.ia-objeto {
+  font-weight: 600;
+  font-size: .95rem;
+  color: var(--text);
+  margin-bottom: 3px;
+  line-height: 1.3;
+}
+.ia-organo {
+  font-size: .78rem;
+  color: var(--text2);
+  font-family: 'JetBrains Mono', monospace;
+}
+.ia-card-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.ia-score { font-size: .7rem; letter-spacing: 1px; }
+.ia-score-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .75rem;
+  color: var(--text2);
+}
+
+.ia-resumen {
+  font-size: .88rem;
+  color: var(--text);
+  margin-bottom: 12px;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.ia-licit-data {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.ia-licit-data span {
+  background: rgba(29,78,216,.08);
+  border: 1px solid rgba(29,78,216,.15);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: .75rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text2);
+}
+
+.ia-pros-cons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+@media (max-width: 600px) { .ia-pros-cons { grid-template-columns: 1fr; } }
+
+.ia-list {
+  list-style: none;
+  margin: 0; padding: 0;
+  font-size: .82rem;
+  line-height: 1.8;
+}
+.ia-list-favor  li { color: #3b82f6; }
+.ia-list-contra li { color: #f87171; }
+
+.ia-consejo {
+  background: rgba(29,78,216,.07);
+  border: 1px solid rgba(29,78,216,.2);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: .84rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+.ia-consejo-label {
+  font-weight: 600;
+  color: #1d4ed8;
+}
+
+.ia-groq-analysis {
+  margin-top: 10px;
+  background: rgba(16,185,129,.06);
+  border: 1px solid rgba(16,185,129,.22);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: .83rem;
+  color: var(--text);
+  line-height: 1.55;
+}
+.groq-label {
+  font-weight: 600;
+  color: #10b981;
+}
+.groq-loading, .groq-pending {
+  color: var(--text2, #888);
+  font-style: italic;
+  font-size: .8rem;
+}
+.groq-error {
+  color: var(--text2, #888);
+  font-size: .78rem;
+  font-style: italic;
+}
+</style>
+
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    LICIT<em>·</em>LAB
+    <span class="logo-tag"></span>
+  </div>
+  <div class="header-stats">
+    <div class="hstat" id="hstatFile">Sin datos</div>
+    <div class="hstat active" id="hstatCount">0 licitaciones</div>
+    <div class="hstat active hstat-importe" id="hstatImporte">0 € total</div>
+    <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Cambiar tema">
+      <span id="themeIcon" aria-hidden="true"></span>
+    </button>
+  </div>
+</header>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" data-tab="datos"><span class="tab-icon"></span> Datos</div>
+  <div class="tab" data-tab="analisis"><span class="tab-icon"></span> Análisis</div>
+  <div class="tab" data-tab="relaciones"><span class="tab-icon"></span> Relaciones</div>
+  <div class="tab" data-tab="ia"><span class="tab-icon"></span> Recomendación</div>
+  <div class="tab" data-tab="bbdd"><span class="tab-icon"></span> Base de Datos</div>
+</div>
+
+<main>
+
+  <!-- TAB: DATOS -->
+  <div class="tab-content active" id="tab-datos">
+    <div class="upload-area" id="uploadArea">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%">
+        <div class="upload-zone" id="dropZone" style="margin:0;border-radius:14px;padding:32px 24px;cursor:pointer" onclick="document.getElementById('fileInput').click()">
+          <div class="upload-icon"></div>
+          <div class="upload-title">Sube tu archivo de licitaciones</div>
+          <div class="upload-sub">Arrastra y suelta o selecciona un archivo <strong>.CSV</strong> o <strong>.XLSX / .XLS</strong></div>
+          <button class="upload-btn" style="pointer-events:none">Seleccionar archivo</button>
+          <div class="demo-row" style="margin-top:14px">
+            <span>¿Sin archivo? Prueba con:</span>
+            <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();loadDemo()">Cargar datos demo</button>
+          </div>
+        </div>
+        <div style="border:2px dashed var(--border2);border-radius:14px;padding:64px 40px;text-align:center;transition:all .3s;background:var(--surface);position:relative;overflow:hidden">
+          <div style="font-size:2.2rem;margin-bottom:12px"></div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;color:var(--text);margin-bottom:6px">Cargar desde la base de datos</div>
+          <div style="font-size:.78rem;color:var(--text2);margin-bottom:20px;line-height:1.5">Carga directamente los datos almacenados en Supabase</div>
+          <button class="btn btn-primary" id="btnCargarBBDD" onclick="cargarDatosDesdeSupabase()" style="width:auto;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:'Instrument Sans',sans-serif;font-size:13px;padding:11px 26px;font-weight:600">Cargar desde BBDD</button>
+          <div id="uploadBBDDStatus" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;margin-top:18px;width:100%;text-align:center;font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--text2)">
+            <div class="ia-spinner" style="width:13px;height:13px;border-width:2px;flex-shrink:0"></div>
+            <span id="uploadBBDDMsg">Conectando...</span>
+          </div>
+        </div>
+      </div>
+      <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display:none">
+    </div>
+
+    <div id="syncBanner" style="display:none;margin-bottom:16px">
+      <div style="background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.35);border-radius:12px;padding:16px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div style="width:36px;height:36px;border-radius:8px;background:rgba(108,99,255,0.15);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0"></div>
+        <div style="flex:1;min-width:180px">
+          <div style="font-size:.85rem;color:var(--text);font-weight:600;margin-bottom:2px" id="syncBannerTitle">Archivo cargado</div>
+          <div style="font-size:.72rem;color:var(--text2)">¿Quieres guardar estos datos en Supabase? Ve a la pestaña Base de Datos para sincronizar.</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span id="syncBannerStatus" style="font-size:.72rem;font-family:'JetBrains Mono',monospace;color:var(--text2)"></span>
+          <button class="btn btn-primary" id="syncBannerBtn" onclick="document.querySelector('.tab[data-tab=bbdd]').click()" style="display:flex;align-items:center;gap:6px;white-space:nowrap">→ Ir a Base de Datos</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('syncBanner').style.display='none'"></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="dataSection" style="display:none">
+      <div class="stats-grid" id="statsGrid"></div>
+      <div class="panel" id="colSelectorPanel">
+        <div class="panel-header">
+          <span class="panel-title">Columnas visibles</span>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm" onclick="selectAllCols()">Todas</button>
+            <button class="btn btn-ghost btn-sm" onclick="selectNoneCols()">Ninguna</button>
+          </div>
+        </div>
+        <div class="col-chips" id="colChips"></div>
+      </div>
+      <div class="panel" id="filterPanel">
+        <div class="panel-header">
+          <span class="panel-title">Filtros</span>
+          <button class="btn btn-ghost btn-sm" onclick="resetFilters()">Limpiar</button>
+        </div>
+        <div class="filter-grid">
+          <div class="filter-group filter-group--wide">
+            <label class="filter-label">Búsqueda global</label>
+            <input type="text" class="filter-input" id="searchInput" placeholder="Objeto, adjudicatario, órgano...">
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Estado</label>
+            <select class="filter-select" id="filterEstado"><option value="">Todos</option></select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Vigencia</label>
+            <select class="filter-select" id="filterVigencia"><option value="">Todas</option></select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Rango fechas</label>
+            <select class="filter-select" id="filterRangoFechas">
+              <option value="">Todos</option>
+              <option value="24h">Últimas 24h</option>
+              <option value="semana">Última semana</option>
+              <option value="mes">Último mes</option>
+              <option value="3meses">Últimos 3 meses</option>
+              <option value="6meses">Últimos 6 meses</option>
+              <option value="12meses">Últimos 12 meses</option>
+              <option value="este_anio">Este año</option>
+              <option value="anio_anterior">Año anterior</option>
+            </select>
+          </div>
+          <div class="filter-group filter-group--full">
+            <label class="filter-label">Adjudicatario</label>
+            <div class="combo-wrapper" id="comboAdjudicatarioWrapper">
+              <input type="text" class="combo-input" id="comboAdjudicatarioInput" placeholder="Escribe para buscar..." autocomplete="off">
+              <span class="combo-arrow">▼</span>
+              <div class="combo-dropdown" id="comboAdjudicatarioList"></div>
+            </div>
+            <input type="hidden" id="filterAdjudicatario">
+          </div>
+          <div class="filter-group filter-group--full">
+            <label class="filter-label">Órgano contratante</label>
+            <div class="combo-wrapper" id="comboOrganoWrapper">
+              <input type="text" class="combo-input" id="comboOrganoInput" placeholder="Escribe para buscar..." autocomplete="off">
+              <span class="combo-arrow">▼</span>
+              <div class="combo-dropdown" id="comboOrganoList"></div>
+            </div>
+            <input type="hidden" id="filterOrgano">
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Importe mín (€)</label>
+            <input type="number" class="filter-input" id="filterMin" placeholder="0">
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Importe máx (€)</label>
+            <input type="number" class="filter-input" id="filterMax" placeholder="Sin límite">
+          </div>
+          <div class="filter-group" style="align-self:flex-end">
+            <button class="btn btn-primary" onclick="applyFilters()">Aplicar filtros</button>
+          </div>
+        </div>
+        <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px">
+          <div style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none" onclick="toggleCpvPanel()">
+            <span class="filter-label" style="margin:0">Sector CPV</span>
+            <span id="cpvActiveBadge" style="display:none;align-items:center;justify-content:center;background:var(--accent);color:#fff;border-radius:999px;font-size:.65rem;font-weight:700;padding:2px 8px;font-family:'JetBrains Mono',monospace"></span>
+            <span id="cpvToggleIcon" style="margin-left:auto;font-size:.75rem;color:var(--text2);transition:transform .2s;display:inline-block">▼</span>
+          </div>
+          <div id="cpvPanel" style="display:none;margin-top:10px">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+              <button class="btn btn-ghost btn-sm" onclick="resetCpvFilter()" style="font-size:.72rem">Limpiar selección</button>
+            </div>
+            <div id="filterCpvGrid" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel" style="padding:0">
+        <div class="table-toolbar">
+          <div class="table-count" id="tableCount"></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost btn-sm" onclick="exportCSV()">Exportar CSV</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table id="mainTable">
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: ANÁLISIS -->
+  <div class="tab-content" id="tab-analisis">
+    <div id="analysisEmpty" class="empty-state">
+      <div class="empty-icon"></div>
+      <div class="empty-title">Carga un archivo para ver el análisis</div>
+      <div class="empty-sub">Los gráficos y estadísticas aparecerán aquí</div>
+    </div>
+    <div id="analysisContent" style="display:none">
+      <div class="empresa-selector">
+        <label>Analizar empresa</label>
+        <div class="combo-wrapper" id="comboEmpresaWrapper">
+          <input type="text" class="combo-input" id="comboEmpresaInput" placeholder="Escribe el nombre de la empresa..." autocomplete="off">
+          <span class="combo-arrow">▼</span>
+          <div class="combo-dropdown" id="comboEmpresaList"></div>
+        </div>
+        <button class="btn-limpiar-empresa" id="btnLimpiarEmpresa" onclick="limpiarEmpresa()" style="display:none">✕ Limpiar</button>
+        <input type="hidden" id="empresaSeleccionada">
+      </div>
+      <div id="empresaEmpty" class="empresa-empty">Selecciona una empresa para ver su ficha completa</div>
+      <div id="empresaDashboard" style="display:none">
+        <div class="empresa-hero" id="empresaHero">
+          <div class="empresa-info">
+            <div class="empresa-name" id="empresaNombre">—</div>
+            <div class="empresa-meta" id="empresaMeta">—</div>
+          </div>
+          <div class="empresa-badge" id="empresaBadge">— €</div>
+        </div>
+        <div class="kpi-grid" id="empresaKpis" style="margin:16px 0"></div>
+        <div class="analysis-grid" style="margin-bottom:16px">
+          <div class="panel" style="grid-column:unset">
+            <div class="panel-header"><span class="panel-title">Contratos recientes</span></div>
+            <div class="timeline" id="empresaTimeline"></div>
+          </div>
+          <div class="panel" style="grid-column:unset">
+            <div class="panel-header"><span class="panel-title">Órganos contratantes</span></div>
+            <table class="organos-table" id="empresaOrganos"></table>
+          </div>
+        </div>
+        <div class="charts-main-row" style="margin-bottom:14px">
+          <div class="panel chart-panel chart-panel--tall">
+            <div class="chart-panel-header"><span class="chart-panel-icon">▲</span><span class="chart-panel-title">Evolución anual de contratos</span></div>
+            <div id="empresaColChart"></div>
+          </div>
+          <div class="panel chart-panel">
+            <div class="chart-panel-header"><span class="chart-panel-icon">◈</span><span class="chart-panel-title">Tipo de contrato</span></div>
+            <div class="donut-row" id="empresaDonutTipos"></div>
+          </div>
+        </div>
+        <div class="charts-bottom-grid" style="margin-bottom:14px">
+          <div class="panel chart-panel">
+            <div class="chart-panel-header"><span class="chart-panel-icon">●</span><span class="chart-panel-title">Estado de contratos</span></div>
+            <div class="vbar-chart" id="empresaBarEstados"></div>
+          </div>
+          <div class="panel chart-panel">
+            <div class="chart-panel-header"><span class="chart-panel-icon">▬</span><span class="chart-panel-title">Rangos de importe</span></div>
+            <div class="vbar-chart" id="empresaBarRangos"></div>
+          </div>
+        </div>
+        <div class="charts-bottom-grid">
+          <div class="panel chart-panel">
+            <div class="chart-panel-header"><span class="chart-panel-icon">◉</span><span class="chart-panel-title">Top procedimientos</span></div>
+            <div class="vbar-chart" id="empresaBarProc"></div>
+          </div>
+          <div class="panel chart-panel">
+            <div class="chart-panel-header"><span class="chart-panel-icon">◐</span><span class="chart-panel-title">Importe adjudicado por año</span></div>
+            <div id="empresaImporteAnioWrap"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: RELACIONES -->
+  <div class="tab-content" id="tab-relaciones">
+    <div id="relEmpty" class="empty-state">
+      <div class="empty-icon"></div>
+      <div class="empty-title">Carga un archivo para detectar relaciones</div>
+      <div class="empty-sub">Se analizarán patrones entre órganos contratantes y adjudicatarios</div>
+    </div>
+    <div id="relContent" style="display:none">
+      <div class="alert alert-warning" id="relAlertHighRisk" style="display:none">Se han detectado relaciones con alta concentración. Un mismo órgano adjudica repetidamente a la misma empresa.</div>
+      <div class="rel-filter-bar">
+        <div class="filter-group" style="flex:2;min-width:220px">
+          <label class="filter-label">Buscar empresa / órgano</label>
+          <input type="text" class="filter-input" id="relSearch" placeholder="Escribe al menos 2 caracteres...">
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Concentración mínima</label>
+          <select class="filter-select" id="relMinConc">
+            <option value="1">≥ 1 contrato</option>
+            <option value="2" selected>≥ 2 contratos</option>
+            <option value="3">≥ 3 contratos</option>
+            <option value="5">≥ 5 contratos</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Ordenar por</label>
+          <select class="filter-select" id="relSortBy">
+            <option value="score">🔥 Riesgo (score)</option>
+            <option value="count">📋 Nº contratos</option>
+            <option value="amount">💰 Importe total</option>
+          </select>
+        </div>
+      </div>
+      <div class="rel-summary" id="relSummary"></div>
+      <div id="relList"></div>
+    </div>
+  </div>
+
+  <!-- TAB: RECOMENDACIÓN IA -->
+  <div class="tab-content" id="tab-ia">
+    <div id="iaEmpty" class="empty-state">
+      <div class="empty-icon"></div>
+      <div class="empty-title">Carga un archivo para obtener recomendaciones</div>
+      <div class="empty-sub">La IA analizará cada licitación y te dirá si merece la pena presentarte</div>
+    </div>
+    <div id="iaContent" style="display:none">
+      <div class="panel" id="iaConfigPanel">
+        <div class="panel-header"><span class="panel-title">Análisis IA de licitaciones</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end">
+          <div class="filter-group" style="flex:1;min-width:220px">
+            <label class="filter-label">Tu sector / especialidad</label>
+            <select class="filter-select" id="iaSector" style="width:100%"><option value="">-- Selecciona tu sector --</option></select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Analizar</label>
+            <select class="filter-select" id="iaScope">
+              <option value="filtered">Licitaciones filtradas (tabla actual)</option>
+              <option value="all">Todas las licitaciones</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Resultados por página</label>
+            <select class="filter-select" id="iaLimit">
+              <option value="10" selected>10 por página</option>
+              <option value="20">20 por página</option>
+              <option value="50">50 por página</option>
+              <option value="100">100 por página</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Importe mínimo del contrato</label>
+            <select class="filter-select" id="iaImporteMin" style="width:100%">
+              <option value="0">Sin mínimo</option>
+              <option value="5000">5.000 €</option>
+              <option value="10000">10.000 €</option>
+              <option value="20000">20.000 €</option>
+              <option value="50000">50.000 €</option>
+              <option value="75000">75.000 €</option>
+              <option value="100000">100.000 €</option>
+              <option value="200000">200.000 €</option>
+              <option value="500000">500.000 €</option>
+              <option value="1000000">1.000.000 €</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Importe máximo del contrato</label>
+            <select class="filter-select" id="iaImporteMax" style="width:100%">
+              <option value="">Sin máximo</option>
+              <option value="10000">10.000 €</option>
+              <option value="20000">20.000 €</option>
+              <option value="50000">50.000 €</option>
+              <option value="75000">75.000 €</option>
+              <option value="100000">100.000 €</option>
+              <option value="200000">200.000 €</option>
+              <option value="500000">500.000 €</option>
+              <option value="1000000">1.000.000 €</option>
+              <option value="5000000">5.000.000 €</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Concentración bloqueante</label>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input type="number" class="filter-input" id="iaUmbralConc" value="60" min="0" max="100" step="1" style="width:80px;text-align:right" oninput="validarUmbralConc(this)">
+              <span style="font-size:.9rem;color:var(--text2)">%</span>
+            </div>
+            <div id="iaUmbralConcError" style="display:none;font-size:.72rem;color:var(--red,#f87171);margin-top:3px"></div>
+          </div>
+          <div class="filter-group" style="align-self:flex-end">
+            <button class="btn btn-primary" id="iaRunBtn" onclick="runIAAnalysis()">Analizar con IA</button>
+          </div>
+        </div>
+        <div style="margin-top:12px;font-size:.78rem;color:var(--text2,#888);font-family:'JetBrains Mono',monospace">El análisis evalúa: CPV vs tu sector · concentración del adjudicatario (bloqueante si supera el umbral) · nº de ofertas previas · dispersión de precios · tipo de procedimiento · importe</div>
+        <div class="ia-lugar-filter">
+          <div class="ia-lugar-filter-header">
+            <span class="ia-lugar-filter-title">Excluir por lugar de ejecución<span class="ia-lugar-badge" id="iaLugarBadge" style="opacity:0">0 excluidos</span></span>
+            <button class="btn btn-ghost btn-sm" onclick="iaLugarLimpiar()">Limpiar todo</button>
+          </div>
+          <div style="position:relative">
+            <input type="text" id="iaLugarSearch" class="filter-input" placeholder="Buscar lugar de ejecución para excluir…" autocomplete="off" oninput="iaLugarOnInput()" onkeydown="iaLugarOnKey(event)" style="width:100%;box-sizing:border-box;padding-right:36px">
+            <div id="iaLugarDropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:200;max-height:200px;overflow-y:auto;"></div>
+          </div>
+          <div id="iaLugarTags" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+        </div>
+      </div>
+      <div id="iaProgress" style="display:none" class="panel">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <div class="ia-spinner"></div>
+          <span id="iaProgressText" style="font-family:'JetBrains Mono',monospace;font-size:.85rem">Analizando...</span>
+        </div>
+        <div class="ia-progress-bar"><div class="ia-progress-fill" id="iaProgressFill" style="width:0%"></div></div>
+      </div>
+      <div id="iaSummaryBlock" style="display:none">
+        <div class="stats-grid" id="iaSummaryGrid"></div>
+        <div style="text-align:center;margin:8px 0 16px"><button id="iaBtnSiguiente" class="btn btn-primary" style="display:none" onclick="analizarBloque()">Analizar siguiente bloque</button></div>
+      </div>
+      <div id="iaResults"></div>
+    </div>
+  </div>
+
+  <!-- TAB: BASE DE DATOS -->
+  <div class="tab-content" id="tab-bbdd">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+      <div>
+        <h2 style="font-family:'Rajdhani',sans-serif;font-size:24px;font-weight:800;letter-spacing:0.5px;color:var(--text);margin:0 0 4px">BASE DE DATOS</h2>
+        <p style="font-size:.82rem;color:var(--text2);margin:0">Consulta y gestiona el repositorio central de licitaciones</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div id="bbddRoleBadge"></div>
+        <button class="btn btn-ghost btn-sm" id="bbddBtnCargar" onclick="cargarDesdeBBDD()">Recargar datos</button>
+      </div>
+    </div>
+    <div id="bbddSpinner" style="display:none" class="panel">
+      <div style="display:flex;align-items:center;gap:14px;padding:8px 0">
+        <div class="ia-spinner"></div>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:.85rem;color:var(--text2)">Conectando con Supabase y cargando datos...</span>
+      </div>
+    </div>
+    <div id="bbddUploadSection" style="display:none">
+      <div class="panel" style="border:1px solid rgba(29,78,216,.35)">
+        <div class="panel-header"><span class="panel-title">Sincronizar archivo con la base de datos</span><span class="badge badge-lime">Solo administradores</span></div>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px">
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <span style="font-size:1.3rem"></span>
+            <div><div style="font-size:.75rem;color:var(--text2);font-family:'JetBrains Mono',monospace;margin-bottom:2px">Archivo en memoria</div><div style="font-size:.85rem;color:var(--text)" id="bbddArchivoNombre">Ningún archivo cargado — ve a la pestaña <strong>Datos</strong> y sube un CSV/XLSX primero</div></div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:12px"><span style="font-size:1.3rem"></span><div style="font-size:.82rem;color:var(--text2)">Nuevas licitaciones se <strong style="color:var(--green)">insertan</strong>. Las que ya existen (mismo ID) se <strong style="color:var(--amber)">actualizan</strong>.</div></div>
+        </div>
+        <div id="bbddProgressWrap" style="display:none;margin:12px 0">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace">Progreso</span><span style="font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace" id="bbddProgressText">0%</span></div>
+          <div class="ia-progress-bar"><div class="ia-progress-fill" id="bbddProgressBar" style="width:0%"></div></div>
+        </div>
+        <div id="bbddStatus" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;margin:10px 0;background:var(--surface2);font-family:'JetBrains Mono',monospace"></div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn btn-primary" id="bbddBtnSubir" onclick="subirASupabase()">Sincronizar con BBDD</button><span style="font-size:11px;color:var(--text3)">Sube primero el archivo en "Datos" y luego haz clic aquí para sincronizarlo</span></div>
+      </div>
+      <div class="panel" style="border:1px solid rgba(67,217,162,.25)">
+        <div class="panel-header"><span class="panel-title">Copia de seguridad local</span><span class="badge badge-cyan">Red de seguridad extra</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px">
+          <div style="display:flex;align-items:flex-start;gap:10px"><span style="font-size:1.2rem;margin-top:2px"></span><div><div style="font-size:.82rem;font-weight:600;color:var(--text);margin-bottom:3px">Descargar copia</div><div style="font-size:.76rem;color:var(--text2);line-height:1.5">Descarga un <strong>.json</strong> con <em>todos</em> los registros actuales de Supabase. Úsala como punto de restauración antes de una sincronización arriesgada.</div></div></div>
+          <div style="display:flex;align-items:flex-start;gap:10px"><span style="font-size:1.2rem;margin-top:2px"></span><div><div style="font-size:.82rem;font-weight:600;color:var(--text);margin-bottom:3px">Restaurar desde copia</div><div style="font-size:.76rem;color:var(--text2);line-height:1.5">Sube un <strong>.json</strong> generado aquí y restaura esos registros en Supabase mediante upsert (no borra registros extra que no estén en la copia).</div></div></div>
+        </div>
+        <div style="background:rgba(67,217,162,.06);border:1px solid rgba(67,217,162,.2);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:.78rem;color:var(--text2);line-height:1.6"><strong style="color:#34d399">Flujo recomendado antes de sincronizar:</strong><br>1. Haz clic en <em>"Descargar copia"</em> y guarda el archivo en un lugar seguro.<br>2. Realiza la sincronización o el rollback que necesites.<br>3. Si algo sale mal, usa <em>"Restaurar desde copia"</em> para volver al estado guardado.</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn-ghost" id="bbddBtnBackup" onclick="exportarCopiaSeguridad()" style="display:flex;align-items:center;gap:7px;border-color:rgba(67,217,162,.45);color:#34d399">Descargar copia de seguridad</button><button class="btn btn-ghost" id="bbddBtnRestaurar" onclick="restaurarDesdeCopia()" style="display:flex;align-items:center;gap:7px;border-color:rgba(245,166,35,.45);color:var(--amber)">Restaurar desde copia</button></div>
+      </div>
+      <div class="panel"><div class="panel-header"><span class="panel-title">Historial de sincronizaciones</span></div><div id="bbddLogWrap"><p style="color:var(--text3);font-size:12px">Cargando historial...</p></div></div>
+    </div>
+    <div class="stats-grid" id="bbddStatsGrid"></div>
+    <div id="bbddEmpty" style="display:none" class="empty-state"><div class="empty-icon"></div><div class="empty-title">La base de datos está vacía</div><div class="empty-sub">Sube un archivo CSV/XLSX en la pestaña <strong>Datos</strong> y luego sincronízalo aquí</div></div>
+    <div id="bbddContent" style="display:none">
+      <div class="panel"><div class="filter-grid"><div class="filter-group" style="flex:2;min-width:220px"><label class="filter-label">Búsqueda libre</label><input type="text" class="filter-input" id="bbddSearch" placeholder="Objeto, órgano, adjudicatario..." oninput="aplicarFiltrosBBDD()" style="width:100%"></div><div class="filter-group"><label class="filter-label">Estado</label><select class="filter-select" id="bbddFilterEstado" onchange="aplicarFiltrosBBDD()"><option value="">Todos</option></select></div><div class="filter-group"><label class="filter-label">Tipo contrato</label><select class="filter-select" id="bbddFilterTipo" onchange="aplicarFiltrosBBDD()"><option value="">Todos</option></select></div><div class="filter-group" style="align-self:flex-end"><button class="btn btn-ghost btn-sm" onclick="resetFiltrosBBDD()">Limpiar</button></div></div></div>
+      <div class="panel" style="padding:0" id="bbddTableWrap">
+        <div class="table-toolbar"><span class="table-count" id="bbddTableCount"></span><button class="btn btn-primary btn-sm" id="bbddBtnAnalizarIA" onclick="analizarBBDDconIA()" title="Carga estos datos en la pestaña Recomendación IA y lanza el análisis">Analizar con IA</button></div>
+        <div class="table-scroll"><table><thead id="bbddTableHead"></thead><tbody id="bbddTableBody"></tbody></table></div>
+        <div class="pagination" id="bbddPagination"></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-head"><div class="modal-title" id="modalTitle"></div><button class="modal-close" onclick="closeModalBtn()"></button></div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- SCRIPTS - RUTAS CORREGIDAS -->
+<script src="/js/theme.js"></script>
+<script src="/js/idb-cache.js"></script>
+<script src="/js/utils.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/state.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/data.js"></script>
+<script src="/js/tab-datos.js"></script>
+<script src="/js/tab-analisis.js"></script>
+<script src="/js/tab-relaciones.js"></script>
+<script src="/js/tab-ia.js"></script>
+<script src="/js/bbdd.js"></script>
+<script src="/js/main.js"></script>
+
+<script>
+function validarUmbralConc(el) {
+  const errEl = document.getElementById('iaUmbralConcError');
+  const val = el.value.trim();
+  if (val === '' || isNaN(Number(val))) {
+    errEl.textContent = 'Introduce un valor entre 0 y 100.';
+    errEl.style.display = 'block';
+    return;
+  }
+  const n = Number(val);
+  if (n < 0 || n > 100) {
+    el.value = Math.max(0, Math.min(100, n));
+    errEl.textContent = 'Valor ajustado al rango 0–100%.';
+    errEl.style.display = 'block';
+    setTimeout(() => { errEl.style.display = 'none'; }, 2000);
+    return;
+  }
+  errEl.style.display = 'none';
+}
+</script>
+
+</body>
+</html>

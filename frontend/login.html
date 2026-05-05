@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LICIT·LAB — Acceso</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Instrument+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="./Frontend/JS/theme.js"></script>
+<style>
+  /*  VARIABLES  */
+  :root{
+    --bg:         #f0f4fa;
+    --surface:    #ffffff;
+    --border:     #d1d9ec;
+    --border-hi:  #b8c3df;
+    --accent:     #1d4ed8;
+    --accent-dim: #dbeafe;
+    --accent-glow:rgba(29,78,216,0.14);
+    --text:       #0b1120;
+    --text-muted: #3d4b6e;
+    --text-dim:   #6b7a9e;
+    --error:      #be123c;
+    --success:    #15803d;
+    --grid-line: rgba(29,78,216,0.06);
+    --font-head:  'Syne', sans-serif;
+    --font-mono:  'JetBrains Mono', monospace;
+    --font-body:  'Instrument Sans', sans-serif;
+  }
+
+  [data-theme="dark"]{
+    --bg:         #060a14;
+    --surface:    #0b1120;
+    --border:     #1a2540;
+    --border-hi:  #243050;
+    --accent:     #3b82f6;
+    --accent-dim: #1e3a6e;
+    --accent-glow:rgba(59,130,246,0.18);
+    --text:       #e2eaf8;
+    --text-muted: #6b7a9e;
+    --text-dim:   #2a3a5a;
+    --grid-line: rgba(59,130,246,0.04);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    z-index: 0;
+    animation: float 8s ease-in-out infinite;
+  }
+  .orb-1 {
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(29,78,216,0.12) 0%, transparent 70%);
+    top: -150px; left: -150px;
+  }
+  .orb-2 {
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(249,115,22,0.07) 0%, transparent 70%);
+    bottom: -100px; right: -100px;
+    animation-delay: -4s;
+  }
+  @keyframes float {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(20px, -20px); }
+  }
+
+  .login-wrap {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 420px;
+    padding: 16px;
+    animation: reveal .5s ease both;
+  }
+  @keyframes reveal {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .logo-block {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .logo-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-head);
+    font-weight: 800;
+    font-size: 1.8rem;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .logo-mark em {
+    color: var(--accent);
+    font-style: normal;
+  }
+  .logo-dot {
+    width: 10px; height: 10px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 12px var(--accent);
+    animation: pulse 2s ease infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 8px var(--accent); }
+    50% { box-shadow: 0 0 20px var(--accent), 0 0 40px var(--accent-dim); }
+  }
+  .logo-sub {
+    margin-top: 6px;
+    font-family: var(--font-mono);
+    font-size: .65rem;
+    letter-spacing: .18em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px 32px;
+    box-shadow: 0 0 0 1px var(--border), 0 24px 64px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.04);
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
+    opacity: .6;
+  }
+
+  .form-title {
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .form-desc {
+    font-size: .82rem;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+  .form-label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: .68rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 7px;
+  }
+  .form-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border-hi);
+    border-radius: 8px;
+    padding: 11px 14px;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: .9rem;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .form-input::placeholder { color: var(--text-dim); }
+  .form-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  .btn-submit {
+    width: 100%;
+    margin-top: 8px;
+    padding: 12px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: .95rem;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .btn-submit:hover:not(:disabled) {
+    background: #2563eb;
+    box-shadow: 0 4px 20px rgba(29,78,216,.5);
+    transform: translateY(-1px);
+  }
+  .btn-submit:disabled { opacity: .5; cursor: not-allowed; }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+    color: var(--text-dim);
+    font-size: .78rem;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .link-action {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-family: var(--font-body);
+    font-size: .82rem;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+  }
+
+  .forgot-row {
+    text-align: right;
+    margin-top: -8px;
+    margin-bottom: 16px;
+  }
+
+  .alert {
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: .84rem;
+    margin-bottom: 16px;
+    display: none;
+    line-height: 1.5;
+  }
+  .alert.show { display: block; }
+  .alert-error {
+    background: rgba(255,77,109,.08);
+    border: 1px solid rgba(255,77,109,.3);
+    color: #ff8fa3;
+  }
+  .alert-success {
+    background: rgba(52,211,153,.08);
+    border: 1px solid rgba(52,211,153,.3);
+    color: #34d399;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .card-footer {
+    margin-top: 40px;
+    text-align: center;
+    font-size: .78rem;
+    color: var(--text-dim);
+  }
+
+  .panel-auth { display: none; }
+  .panel-auth.active { display: block; }
+  .panel-auth.active { animation: fadeIn .25s ease both; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="login-wrap">
+  <div class="logo-block">
+    <div class="logo-mark">
+      <div class="logo-dot"></div>
+      LICIT<em>·</em>LAB
+    </div>
+    <div class="logo-sub">Contratación pública · Plataforma de análisis</div>
+  </div>
+
+  <div class="card">
+    <div class="panel-auth active" id="panel-login">
+      <div class="form-title">Bienvenido de nuevo</div>
+      <div class="form-desc">Accede a tu cuenta para analizar licitaciones.</div>
+
+      <div class="alert alert-error" id="loginError"></div>
+      <div class="alert alert-success" id="loginSuccess"></div>
+
+      <div class="form-group">
+        <label class="form-label">Correo electrónico</label>
+        <input type="email" class="form-input" id="loginEmail" placeholder="tu@email.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contraseña</label>
+        <input type="password" class="form-input" id="loginPassword" placeholder="••••••••" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter') doLogin()">
+      </div>
+      <div class="forgot-row">
+        <button class="link-action" onclick="switchTab('reset')">¿Olvidaste tu contraseña?</button>
+      </div>
+
+      <button class="btn-submit" id="loginBtn" onclick="doLogin()">
+        Entrar
+      </button>
+    </div>
+
+    <div class="panel-auth" id="panel-reset">
+      <div class="form-title">Recuperar contraseña</div>
+      <div class="form-desc">Te enviaremos un enlace para restablecer tu contraseña.</div>
+
+      <div class="alert alert-error" id="resetError"></div>
+      <div class="alert alert-success" id="resetSuccess"></div>
+
+      <div class="form-group">
+        <label class="form-label">Correo electrónico</label>
+        <input type="email" class="form-input" id="resetEmail" placeholder="tu@email.com" autocomplete="email"
+          onkeydown="if(event.key==='Enter') doReset()">
+      </div>
+
+      <button class="btn-submit" id="resetBtn" onclick="doReset()">
+        Enviar enlace
+      </button>
+
+      <div class="divider">o</div>
+      <div style="text-align:center">
+        <button class="link-action" onclick="switchTab('login')">Volver al inicio de sesión</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-footer">
+    LICIT·LAB © <script>document.write(new Date().getFullYear())</script>
+  </div>
+</div>
+
+<script>
+// ==================== CONFIGURACIÓN ====================
+const API_URL = window.location.origin + '/api';
+
+// ==================== UTILIDADES ====================
+function clearAlerts() {
+  document.querySelectorAll('.alert').forEach(a => {
+    a.classList.remove('show');
+    a.textContent = '';
+  });
+}
+
+function showAlert(id, msg, type = 'error') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = `alert alert-${type} show`;
+  el.textContent = msg;
+}
+
+function setLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  if (loading) {
+    btn._orig = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner"></span> Procesando...';
+    btn.disabled = true;
+  } else {
+    btn.innerHTML = btn._orig || btn.innerHTML;
+    btn.disabled = false;
+  }
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.panel-auth').forEach(p => p.classList.remove('active'));
+  document.getElementById(`panel-${tab}`).classList.add('active');
+  clearAlerts();
+}
+
+// ==================== LOGIN (USA EL SERVIDOR NODE.js) ====================
+async function doLogin() {
+  clearAlerts();
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+
+  if (!email || !password) {
+    showAlert('loginError', 'Por favor rellena todos los campos.');
+    return;
+  }
+
+  setLoading('loginBtn', true);
+
+  try {
+    const response = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      showAlert('loginSuccess', '¡Acceso correcto! Redirigiendo...', 'success');
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 900);
+    } else {
+      showAlert('loginError', data.error || 'Error al iniciar sesión');
+      document.getElementById('loginEmail').classList.add('error');
+      document.getElementById('loginPassword').classList.add('error');
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    showAlert('loginError', 'Error de conexión con el servidor');
+  } finally {
+    setLoading('loginBtn', false);
+  }
+}
+
+// ==================== RESET PASSWORD ====================
+async function doReset() {
+  clearAlerts();
+  const email = document.getElementById('resetEmail').value.trim();
+
+  if (!email) {
+    showAlert('resetError', 'Introduce tu correo electrónico.');
+    return;
+  }
+
+  setLoading('resetBtn', true);
+
+  try {
+    const response = await fetch(`${API_URL}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      showAlert('resetSuccess', data.message, 'success');
+    } else {
+      showAlert('resetError', data.error || 'Error al enviar el enlace');
+    }
+  } catch (error) {
+    showAlert('resetError', 'Error de conexión con el servidor');
+  } finally {
+    setLoading('resetBtn', false);
+  }
+}
+
+// ==================== REGISTRO ====================
+async function doRegister() {
+  clearAlerts();
+  const name = document.getElementById('registerName')?.value.trim() || '';
+  const email = document.getElementById('registerEmail')?.value.trim() || '';
+  const pass1 = document.getElementById('registerPassword')?.value || '';
+  const pass2 = document.getElementById('registerPassword2')?.value || '';
+
+  if (!name || !email || !pass1 || !pass2) {
+    showAlert('registerError', 'Por favor rellena todos los campos.');
+    return;
+  }
+  if (pass1.length < 8) {
+    showAlert('registerError', 'La contraseña debe tener al menos 8 caracteres.');
+    return;
+  }
+  if (pass1 !== pass2) {
+    showAlert('registerError', 'Las contraseñas no coinciden.');
+    return;
+  }
+
+  setLoading('registerBtn', true);
+
+  try {
+    const response = await fetch(`${API_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass1, fullName: name })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      showAlert('registerSuccess', data.message, 'success');
+      setTimeout(() => switchTab('login'), 2000);
+    } else {
+      showAlert('registerError', data.error || 'Error al registrar');
+    }
+  } catch (error) {
+    showAlert('registerError', 'Error de conexión con el servidor');
+  } finally {
+    setLoading('registerBtn', false);
+  }
+}
+
+// Si ya hay sesión activa, redirigir al index
+(async () => {
+  try {
+    const response = await fetch(`${API_URL}/auth/session`, {
+      credentials: 'include'
+    });
+    const data = await response.json();
+    if (data.success && data.user) {
+      window.location.href = '/';
+    }
+  } catch (error) {
+    console.log('No hay sesión activa');
+  }
+})();
+</script>
+</body>
+</html>
