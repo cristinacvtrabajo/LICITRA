@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LICITRA — Acceso</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Instrument+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="./js/theme.js"></script>
+<style>
+ :root {
+ --bg: #f0f4fa;
+ --surface: #ffffff;
+ --border: #d1d9ec;
+ --border-hi: #b8c3df;
+ --accent: #1d4ed8;
+ --accent-dim: #dbeafe;
+ --accent-glow:rgba(29,78,216,0.14);
+ --text: #0b1120;
+ --text-muted: #3d4b6e;
+ --text-dim: #6b7a9e;
+ --grid-line: rgba(29,78,216,0.06);
+ --font-head: 'Syne', sans-serif;
+ --font-mono: 'JetBrains Mono', monospace;
+ --font-body: 'Instrument Sans', sans-serif;
+ }
+ [data-theme="dark"] {
+ --bg: #060a14;
+ --surface: #0b1120;
+ --border: #1a2540;
+ --border-hi: #243050;
+ --accent: #3b82f6;
+ --accent-dim: #1e3a6e;
+ --accent-glow:rgba(59,130,246,0.18);
+ --text: #e2eaf8;
+ --text-muted: #6b7a9e;
+ --text-dim: #2a3a5a;
+ --grid-line: rgba(59,130,246,0.04);
+ }
+
+ *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+ body {
+ background: var(--bg);
+ color: var(--text);
+ font-family: var(--font-body);
+ min-height: 100vh;
+ display: flex;
+ align-items: flex-start;
+ justify-content: center;
+ padding: 40px 16px;
+ position: relative;
+ }
+ body::before {
+ content: '';
+ position: fixed; inset: 0;
+ background-image:
+ linear-gradient(var(--grid-line) 1px, transparent 1px),
+ linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+ background-size: 48px 48px;
+ pointer-events: none; z-index: 0;
+ }
+
+ .orb { position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; z-index: 0; animation: float 8s ease-in-out infinite; }
+ .orb-1 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(29,78,216,0.10) 0%, transparent 70%); top: -150px; left: -150px; }
+ .orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(249,115,22,0.06) 0%, transparent 70%); bottom: -100px; right: -100px; animation-delay: -4s; }
+ @keyframes float { 0%,100%{transform:translate(0,0)} 50%{transform:translate(20px,-20px)} }
+
+ .wrap {
+ position: relative; z-index: 1;
+ width: 100%; max-width: 500px;
+ animation: reveal .5s ease both;
+ }
+ @keyframes reveal { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+
+ /* Logo */
+ .logo-block { text-align: center; margin-bottom: 32px; }
+ .logo-mark { display:inline-flex;align-items:center;gap:10px;font-family:var(--font-head);font-weight:800;font-size:1.8rem;letter-spacing:-.02em;color:var(--text); }
+ .logo-mark em { color:var(--accent);font-style:normal; }
+ .logo-dot { width:10px;height:10px;background:var(--accent);border-radius:50%;box-shadow:0 0 12px var(--accent);animation:pulse 2s ease infinite; }
+ @keyframes pulse { 0%,100%{box-shadow:0 0 8px var(--accent)} 50%{box-shadow:0 0 20px var(--accent),0 0 40px var(--accent-dim)} }
+ .logo-sub { margin-top:6px;font-family:var(--font-mono);font-size:.65rem;letter-spacing:.18em;color:var(--text-muted);text-transform:uppercase; }
+
+ /* Card */
+ .card {
+ background: var(--surface);
+ border: 1px solid var(--border);
+ border-radius: 16px;
+ padding: 36px 32px;
+ box-shadow: 0 0 0 1px var(--border), 0 24px 64px rgba(0,0,0,.07), inset 0 1px 0 rgba(255,255,255,.06);
+ position: relative; overflow: hidden;
+ }
+ .card::before { content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent-dim),transparent);opacity:.6; }
+
+ /* Paneles */
+ .panel { display: none; }
+ .panel.active { display: block; animation: fadeIn .25s ease both; }
+ @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+ /* Formulario */
+ .form-title { font-family:var(--font-head);font-weight:700;font-size:1.25rem;color:var(--text);margin-bottom:4px; }
+ .form-desc { font-size:.82rem;color:var(--text-muted);margin-bottom:24px;line-height:1.5; }
+
+ .section-sep {
+ font-family: var(--font-mono);
+ font-size: .65rem;
+ letter-spacing: .14em;
+ text-transform: uppercase;
+ color: var(--text-dim);
+ margin: 20px 0 12px;
+ padding-bottom: 7px;
+ border-bottom: 1px solid var(--border);
+ display: flex;
+ align-items: center;
+ gap: 8px;
+ }
+
+ .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+ .form-group { margin-bottom: 12px; }
+
+ .form-label {
+ display: block;
+ font-family: var(--font-mono);
+ font-size: .67rem;
+ letter-spacing: .1em;
+ text-transform: uppercase;
+ color: var(--text-muted);
+ margin-bottom: 6px;
+ }
+ .form-label .opt { color: var(--text-dim); font-weight: 400; letter-spacing: 0; text-transform: none; font-family: var(--font-body); font-size: .75rem; }
+
+ .form-input, .form-select {
+ width: 100%;
+ background: var(--bg);
+ border: 1px solid var(--border-hi);
+ border-radius: 8px;
+ padding: 10px 13px;
+ color: var(--text);
+ font-family: var(--font-body);
+ font-size: .88rem;
+ outline: none;
+ transition: border-color .2s, box-shadow .2s;
+ }
+ .form-input::placeholder { color: var(--text-dim); }
+ .form-input:focus, .form-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+ .form-select { cursor: pointer; }
+
+ /* Selector tipo */
+ .tipo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+ .tipo-btn {
+ padding: 16px 12px;
+ border: 1.5px solid var(--border-hi);
+ border-radius: 10px;
+ background: var(--bg);
+ color: var(--text-muted);
+ cursor: pointer;
+ text-align: center;
+ transition: all .2s;
+ display: flex; flex-direction: column; align-items: center; gap: 8px;
+ }
+ .tipo-btn .tipo-icon { font-size: 1.6rem; }
+ .tipo-btn .tipo-name { font-family: var(--font-head); font-weight: 700; font-size: .9rem; }
+ .tipo-btn .tipo-sub { font-size: .72rem; color: var(--text-dim); line-height: 1.3; }
+ .tipo-btn:hover { border-color: var(--accent); color: var(--accent); }
+ .tipo-btn:hover .tipo-sub { color: var(--accent); opacity: .7; }
+ .tipo-btn.selected { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+ .tipo-btn.selected .tipo-sub { color: var(--accent); opacity: .8; }
+
+ /* Botones */
+ .btn-primary {
+ width: 100%; margin-top: 10px; padding: 13px;
+ background: var(--accent); color: #fff; border: none; border-radius: 8px;
+ font-family: var(--font-head); font-weight: 700; font-size: .95rem;
+ cursor: pointer; transition: all .2s;
+ }
+ .btn-primary:hover:not(:disabled) { background: #2563eb; box-shadow: 0 4px 20px rgba(29,78,216,.4); transform: translateY(-1px); }
+ .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+ .btn-ghost {
+ background: none; border: none; color: var(--accent);
+ font-family: var(--font-body); font-size: .82rem;
+ cursor: pointer; text-decoration: underline; padding: 0;
+ }
+
+ /* Alertas */
+ .alert { border-radius: 8px; padding: 12px 14px; font-size: .84rem; margin-bottom: 14px; display: none; line-height: 1.5; }
+ .alert.show { display: block; }
+ .alert-error { background: rgba(190,18,60,.08); border: 1px solid rgba(190,18,60,.25); color: #f87171; }
+ .alert-success { background: rgba(21,128,61,.08); border: 1px solid rgba(21,128,61,.25); color: #4ade80; }
+
+ .spinner { display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;vertical-align:middle; }
+ @keyframes spin { to{transform:rotate(360deg)} }
+
+ .divider { display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--text-dim);font-size:.78rem; }
+ .divider::before,.divider::after { content:'';flex:1;height:1px;background:var(--border); }
+
+ .forgot-row { text-align:right; margin-top:-4px; margin-bottom:14px; }
+
+ .footer { margin-top: 28px; text-align: center; font-size: .78rem; color: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="wrap">
+
+ <div class="logo-block">
+ <div class="logo-mark"><div class="logo-dot"></div>LIC<em>I</em>TRA</div>
+ <div class="logo-sub">El arte de la oferta perfecta</div>
+ </div>
+
+ <div class="card">
+
+ <!-- LOGIN -->
+ <div class="panel active" id="panel-login">
+ <div class="form-title">Bienvenido de nuevo</div>
+ <div class="form-desc">Accede a tu cuenta para analizar licitaciones.</div>
+
+ <div class="alert alert-error" id="loginError"></div>
+ <div class="alert alert-success" id="loginSuccess"></div>
+
+ <div class="form-group">
+ <label class="form-label">Correo electrónico</label>
+ <input type="email" class="form-input" id="loginEmail" placeholder="tu@email.com" autocomplete="email">
+ </div>
+ <div class="form-group">
+ <label class="form-label">Contraseña</label>
+ <input type="password" class="form-input" id="loginPassword" placeholder="••••••••"
+ autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+ </div>
+ <div class="forgot-row">
+ <button class="btn-ghost" onclick="switchPanel('reset')">¿Olvidaste tu contraseña?</button>
+ </div>
+
+ <button class="btn-primary" id="loginBtn" onclick="doLogin()">Entrar</button>
+
+ <div class="divider">¿primera vez aquí?</div>
+ <div style="text-align:center">
+ <button class="btn-ghost" onclick="switchPanel('register')">Crear una cuenta nueva</button>
+ </div>
+ </div>
+
+ <!-- REGISTRO -->
+ <div class="panel" id="panel-register">
+ <div class="form-title">Crear cuenta</div>
+ <div class="form-desc">Acceso gratuito a la plataforma de análisis de licitaciones públicas.</div>
+
+ <div class="alert alert-error" id="registerError"></div>
+ <div class="alert alert-success" id="registerSuccess"></div>
+
+ <!-- Tipo de cuenta -->
+ <div class="tipo-grid">
+ <button class="tipo-btn" id="tipo-profesional" onclick="selectTipo('profesional')">
+ <span class="tipo-name">Profesional</span>
+ <span class="tipo-sub">Autónomo o freelance</span>
+ </button>
+ <button class="tipo-btn" id="tipo-empresa" onclick="selectTipo('empresa')">
+ <span class="tipo-name">Empresa</span>
+ <span class="tipo-sub">Organización o sociedad</span>
+ </button>
+ </div>
+
+ <!-- BLOQUE PROFESIONAL -->
+ <div id="bloque-profesional" style="display:none">
+
+ <div class="section-sep">Datos básicos</div>
+ <div class="form-group">
+ <label class="form-label">Nombre y apellidos</label>
+ <input type="text" class="form-input" id="p_nombre" placeholder="Ana García López" autocomplete="name">
+ </div>
+ <div class="form-grid-2">
+ <div class="form-group">
+ <label class="form-label">Email</label>
+ <input type="email" class="form-input" id="p_email" placeholder="tu@email.com" autocomplete="email">
+ </div>
+ <div class="form-group">
+ <label class="form-label">Teléfono <span class="opt">(opcional)</span></label>
+ <input type="tel" class="form-input" id="p_telefono" placeholder="+34 600 000 000">
+ </div>
+ </div>
+ <div class="form-grid-2">
+ <div class="form-group">
+ <label class="form-label">Contraseña</label>
+ <input type="password" class="form-input" id="p_pass1" placeholder="Mín. 8 caracteres" autocomplete="new-password">
+ </div>
+ <div class="form-group">
+ <label class="form-label">Confirmar contraseña</label>
+ <input type="password" class="form-input" id="p_pass2" placeholder="Repite la contraseña">
+ </div>
+ </div>
+
+ <div class="section-sep">Datos fiscales</div>
+ <div class="form-group">
+ <label class="form-label">DNI / NIF <span class="opt">(opcional)</span></label>
+ <input type="text" class="form-input" id="p_dni" placeholder="12345678A">
+ </div>
+ <div class="form-group">
+ <label class="form-label">Dirección fiscal <span class="opt">(opcional)</span></label>
+ <input type="text" class="form-input" id="p_direccion" placeholder="Calle, número, ciudad, CP">
+ </div>
+ <div class="form-group">
+ <label class="form-label">País <span class="opt">(opcional)</span></label>
+ <input type="text" class="form-input" id="p_pais" placeholder="España">
+ </div>
+
+ <div class="section-sep">Datos profesionales</div>
+ <div class="form-group">
+ <label class="form-label">Especialidad <span class="opt">(opcional)</span></label>
+ <input type="text" class="form-input" id="p_especialidad" placeholder="Ej: ingeniería civil, consultoría TI…">
+ </div>
+ <div class="form-grid-2">
+ <div class="form-group">
+ <label class="form-label">Años de experiencia <span class="opt">(opcional)</span></label>
+ <input type="number" class="form-input" id="p_experiencia" placeholder="5" min="0" max="60">
+ </div>
+ <div class="form-group">
+ <label class="form-label">Portfolio / web <span class="opt">(opcional)</span></label>
+ <input type="url" class="form-input" id="p_portfolio" placeholder="https://tu-web.com">
+ </div>
+ </div>
+
+ </div><!-- /bloque-profesional -->
+
+ <!-- BLOQUE EMPRESA -->
+ <div id="bloque-empresa" style="display:none">
+
+ <div class="section-sep">Datos básicos</div>
+ <div class="form-group">
+ <label class="form-label">Nombre de la empresa</label>
+ <input type="text" class="form-input" id="e_nombre" placeholder="Empresa S.L.">
+ </div>
+ <div class="form-grid-2">
+ <div class="form-group">
+ <label class="form-label">Email de contacto</label>
+ <input type="email" class="form-input" id="e_email" placeholder="contacto@empresa.com" autocomplete="email">
+ </div>
+ <div class="form-group">
+ <label class="form-label">Teléfono</label>
+ <input type="tel" class="form-input" id="e_telefono" placeholder="+34 91 000 00 00">
+ </div>
+ </div>
+ <div class="form-grid-2">
+ <div class="form-group">
+ <label class="form-label">Contraseña</label>
+ <input type="password" class="form-input" id="e_pass1" placeholder="Mín. 8 caracteres" autocomplete="new-password">
+ </div>
+ <div class="form-group">
+ <label class="form-label">Confirmar contraseña</label>
+ <input type="password" class="form-input" id="e_pass2" placeholder="Repite la contraseña">
+ </div>
+ </div>
+
+ <div class="section-sep">Datos fiscales</div>
+ <div class="form-group">
+ <label class="form-label">CIF <span class="opt">(opcional)</span></label>
+ <input type="text" class="form-input" id="e_cif" placeholder="B12345678">
+ </div>
+ <div class="form-group">
+ <label class="form-label">Dirección fiscal <span class="opt">(opcional)</span></label>
+ <input type="text" class="form-input" id="e_direccion" placeholder="Calle, número, ciudad, CP">
+ </div>
+ <div class="form-group">
+ <label class="form-label">País <span class="opt">(opcional)</span></label>
+ <input type="text" class="form-input" id="e_pais" placeholder="España">
+ </div>
+
+ <div class="section-sep">Datos de empresa</div>
+ <div class="form-grid-2">
+ <div class="form-group">
+ <label class="form-label">Persona de contacto <span class="opt">(opcional)</span></label>
+ <input type="text" class="form-input" id="e_contacto" placeholder="Juan Pérez">
+ </div>
+ <div class="form-group">
+ <label class="form-label">Cargo <span class="opt">(opcional)</span></label>
+ <input type="text" class="form-input" id="e_cargo" placeholder="Director comercial">
+ </div>
+ </div>
+ <div class="form-grid-2">
+ <div class="form-group">
+ <label class="form-label">Nº empleados <span class="opt">(opcional)</span></label>
+ <select class="form-select" id="e_empleados">
+ <option value="">Seleccionar…</option>
+ <option>1–10</option>
+ <option>11–50</option>
+ <option>51–250</option>
+ <option>251–1000</option>
+ <option>+1000</option>
+ </select>
+ </div>
+ <div class="form-group">
+ <label class="form-label">Sector / actividad <span class="opt">(opcional)</span></label>
+ <input type="text" class="form-input" id="e_sector" placeholder="Ej: construcción, TI, consultoría…">
+ </div>
+ </div>
+ <div class="form-group">
+ <label class="form-label">Página web <span class="opt">(opcional)</span></label>
+ <input type="url" class="form-input" id="e_web" placeholder="https://empresa.com">
+ </div>
+
+ </div><!-- /bloque-empresa -->
+
+ <!-- Botón solo visible cuando hay tipo seleccionado -->
+ <div id="register-submit" style="display:none">
+ <button class="btn-primary" id="registerBtn" onclick="doRegister()">Crear cuenta</button>
+ </div>
+
+ <div class="divider" id="register-divider" style="display:none">¿ya tienes cuenta?</div>
+ <div style="text-align:center" id="register-back" style="display:none">
+ <button class="btn-ghost" onclick="switchPanel('login')">Iniciar sesión</button>
+ </div>
+
+ <!-- Siempre visible para poder volver sin haber seleccionado tipo -->
+ <div style="text-align:center;margin-top:16px">
+ <button class="btn-ghost" onclick="switchPanel('login')" id="register-back-top">← Volver al inicio de sesión</button>
+ </div>
+ </div>
+
+ <!-- RECUPERAR CONTRASEÑA -->
+ <div class="panel" id="panel-reset">
+ <div class="form-title">Recuperar contraseña</div>
+ <div class="form-desc">Te enviaremos un enlace para restablecer tu contraseña.</div>
+
+ <div class="alert alert-error" id="resetError"></div>
+ <div class="alert alert-success" id="resetSuccess"></div>
+
+ <div class="form-group">
+ <label class="form-label">Correo electrónico</label>
+ <input type="email" class="form-input" id="resetEmail" placeholder="tu@email.com"
+ onkeydown="if(event.key==='Enter')doReset()">
+ </div>
+
+ <button class="btn-primary" id="resetBtn" onclick="doReset()">Enviar enlace</button>
+
+ <div class="divider">o</div>
+ <div style="text-align:center">
+ <button class="btn-ghost" onclick="switchPanel('login')">Volver al inicio de sesión</button>
+ </div>
+ </div>
+
+ </div><!-- /card -->
+
+ <div class="footer">
+ LICITRA © <script>document.write(new Date().getFullYear())</script>
+ </div>
+
+</div><!-- /wrap -->
+
+<script>
+const API_URL = window.location.origin + '/api';
+let tipoActual = null;
+
+// Utilidades 
+function clearAlerts() {
+ document.querySelectorAll('.alert').forEach(a => { a.classList.remove('show'); a.textContent = ''; });
+}
+function showAlert(id, msg, type = 'error') {
+ const el = document.getElementById(id);
+ if (!el) return;
+ el.className = `alert alert-${type} show`;
+ el.textContent = msg;
+ el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function setLoading(btnId, loading) {
+ const btn = document.getElementById(btnId);
+ if (!btn) return;
+ if (loading) { btn._orig = btn.innerHTML; btn.innerHTML = '<span class="spinner"></span> Procesando...'; btn.disabled = true; }
+ else { btn.innerHTML = btn._orig || btn.innerHTML; btn.disabled = false; }
+}
+function val(id) {
+ const el = document.getElementById(id);
+ return el ? el.value.trim() : '';
+}
+function switchPanel(name) {
+ document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+ document.getElementById(`panel-${name}`).classList.add('active');
+ clearAlerts();
+ window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Selector tipo 
+function selectTipo(tipo) {
+ tipoActual = tipo;
+ document.getElementById('tipo-profesional').classList.toggle('selected', tipo === 'profesional');
+ document.getElementById('tipo-empresa').classList.toggle('selected', tipo === 'empresa');
+ document.getElementById('bloque-profesional').style.display = tipo === 'profesional' ? 'block' : 'none';
+ document.getElementById('bloque-empresa').style.display = tipo === 'empresa' ? 'block' : 'none';
+ document.getElementById('register-submit').style.display = 'block';
+ document.getElementById('register-divider').style.display = 'flex';
+ document.getElementById('register-back').style.display = 'block';
+ document.getElementById('register-back-top').style.display = 'none';
+ // Enfocar primer campo
+ const primer = tipo === 'profesional' ? 'p_nombre' : 'e_nombre';
+ setTimeout(() => document.getElementById(primer)?.focus(), 50);
+}
+
+// LOGIN 
+async function doLogin() {
+ clearAlerts();
+ const email = val('loginEmail');
+ const password = document.getElementById('loginPassword').value;
+ if (!email || !password) { showAlert('loginError', 'Por favor rellena todos los campos.'); return; }
+
+ setLoading('loginBtn', true);
+ try {
+ const res = await fetch(`${API_URL}/auth/login`, {
+ method: 'POST', headers: { 'Content-Type': 'application/json' },
+ credentials: 'include', body: JSON.stringify({ email, password })
+ });
+ const data = await res.json();
+ if (data.success) {
+ showAlert('loginSuccess', '¡Acceso correcto! Redirigiendo…', 'success');
+ setTimeout(() => { window.location.href = '/'; }, 900);
+ } else {
+ showAlert('loginError', data.error || 'Credenciales incorrectas.');
+ }
+ } catch { showAlert('loginError', 'Error de conexión con el servidor.'); }
+ finally { setLoading('loginBtn', false); }
+}
+
+// REGISTRO 
+async function doRegister() {
+ clearAlerts();
+ if (!tipoActual) { showAlert('registerError', 'Selecciona el tipo de cuenta.'); return; }
+
+ let payload = { tipo: tipoActual };
+
+ if (tipoActual === 'profesional') {
+ const pass1 = document.getElementById('p_pass1').value;
+ const pass2 = document.getElementById('p_pass2').value;
+ if (!val('p_nombre') || !val('p_email') || !pass1) {
+ showAlert('registerError', 'Nombre, email y contraseña son obligatorios.'); return;
+ }
+ if (pass1.length < 8) { showAlert('registerError', 'La contraseña debe tener al menos 8 caracteres.'); return; }
+ if (pass1 !== pass2) { showAlert('registerError', 'Las contraseñas no coinciden.'); return; }
+
+ payload = {
+ ...payload,
+ email: val('p_email'),
+ password: pass1,
+ nombre_apellidos: val('p_nombre'),
+ telefono: val('p_telefono') || null,
+ dni_nif: val('p_dni') || null,
+ direccion_fiscal: val('p_direccion') || null,
+ pais: val('p_pais') || null,
+ especialidad: val('p_especialidad')|| null,
+ anios_experiencia: val('p_experiencia') || null,
+ portfolio_web: val('p_portfolio') || null,
+ };
+ } else {
+ const pass1 = document.getElementById('e_pass1').value;
+ const pass2 = document.getElementById('e_pass2').value;
+ if (!val('e_nombre') || !val('e_email') || !pass1) {
+ showAlert('registerError', 'Nombre de empresa, email y contraseña son obligatorios.'); return;
+ }
+ if (pass1.length < 8) { showAlert('registerError', 'La contraseña debe tener al menos 8 caracteres.'); return; }
+ if (pass1 !== pass2) { showAlert('registerError', 'Las contraseñas no coinciden.'); return; }
+
+ payload = {
+ ...payload,
+ email: val('e_email'),
+ password: pass1,
+ nombre_empresa: val('e_nombre'),
+ telefono: val('e_telefono') || null,
+ cif: val('e_cif') || null,
+ direccion_fiscal: val('e_direccion') || null,
+ pais: val('e_pais') || null,
+ persona_contacto: val('e_contacto') || null,
+ cargo_contacto: val('e_cargo') || null,
+ num_empleados: val('e_empleados') || null,
+ sector: val('e_sector') || null,
+ web_empresa: val('e_web') || null,
+ };
+ }
+
+ setLoading('registerBtn', true);
+ try {
+ const res = await fetch(`${API_URL}/auth/register`, {
+ method: 'POST', headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify(payload)
+ });
+ const data = await res.json();
+ if (data.success) {
+ showAlert('registerSuccess', data.message, 'success');
+ setTimeout(() => switchPanel('login'), 2500);
+ } else {
+ showAlert('registerError', data.error || 'Error al crear la cuenta.');
+ }
+ } catch { showAlert('registerError', 'Error de conexión con el servidor.'); }
+ finally { setLoading('registerBtn', false); }
+}
+
+// RECUPERAR CONTRASEÑA 
+async function doReset() {
+ clearAlerts();
+ const email = val('resetEmail');
+ if (!email) { showAlert('resetError', 'Introduce tu correo electrónico.'); return; }
+
+ setLoading('resetBtn', true);
+ try {
+ const res = await fetch(`${API_URL}/auth/reset-password`, {
+ method: 'POST', headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ email })
+ });
+ const data = await res.json();
+ if (data.success) showAlert('resetSuccess', data.message, 'success');
+ else showAlert('resetError', data.error || 'Error al enviar el enlace.');
+ } catch { showAlert('resetError', 'Error de conexión con el servidor.'); }
+ finally { setLoading('resetBtn', false); }
+}
+
+// Redirigir si ya hay sesión 
+(async () => {
+ try {
+ const res = await fetch(`${API_URL}/auth/session`, { credentials: 'include' });
+ const data = await res.json();
+ if (data.success && data.user) window.location.href = '/';
+ } catch {}
+})();
+
+// ── Detección de conexión perdida ─────────────────────────────
+function showNetworkBanner(msg) {
+ let banner = document.getElementById('networkBanner');
+ if (!banner) {
+   banner = document.createElement('div');
+   banner.id = 'networkBanner';
+   banner.style.cssText = [
+     'position:fixed','top:0','left:0','right:0','z-index:9999',
+     'background:#7f1d1d','color:#fff','text-align:center',
+     'padding:10px 16px','font-size:13px','font-weight:500',
+     'display:flex','align-items:center','justify-content:center','gap:8px'
+   ].join(';');
+   document.body.prepend(banner);
+ }
+ banner.innerHTML = `<span>⚠️</span><span>${msg}</span>`;
+ banner.style.display = 'flex';
+}
+
+window.addEventListener('offline', () => {
+ showNetworkBanner('Sin conexión a Internet. Comprueba tu red.');
+});
+window.addEventListener('online', () => {
+ const b = document.getElementById('networkBanner');
+ if (b) b.style.display = 'none';
+});
+
+// Mejorar mensajes de error de red en los formularios
+const _origDoLogin = doLogin;
+window.doLogin = async function() {
+ if (!navigator.onLine) {
+   showAlert('loginError', 'No hay conexión a Internet. Comprueba tu red.');
+   return;
+ }
+ return _origDoLogin();
+};
+const _origDoRegister = doRegister;
+window.doRegister = async function() {
+ if (!navigator.onLine) {
+   showAlert('registerError', 'No hay conexión a Internet. Comprueba tu red.');
+   return;
+ }
+ return _origDoRegister();
+};
+</script>
+</body>
+</html>
