@@ -98,6 +98,15 @@ function toggleCpvPanel() {
  if (icon) icon.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
 }
 
+function toggleColPanel() {
+ const wrap = document.getElementById('colChipsWrap');
+ const icon = document.getElementById('colToggleIcon');
+ if (!wrap) return;
+ const open = wrap.style.display === 'none' || wrap.style.display === '';
+ wrap.style.display = open ? 'block' : 'none';
+ if (icon) icon.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+
 function resetCpvFilter() {
  _cpvSeleccionados.clear();
  buildCpvFilter();
@@ -690,7 +699,24 @@ function closeModalBtn() {
  document.getElementById('modalOverlay').classList.remove('open');
 }
 
-// EXPORTAR CSV 
+// EXPORTAR CSV
 function exportCSV() {
  const cols = COL_MAP.filter(c => visibleCols.includes(c.key));
- const 
+ const header = cols.map(c => '"' + (c.match[0] || c.label) + '"').join(';');
+ const rows = filteredData.map(row =>
+ cols.map(c => {
+ const v = row[c.key] ?? '';
+ return '"' + String(v).replace(/"/g, '""') + '"';
+ }).join(';')
+ );
+ const csv = [header, ...rows].join('\n');
+ const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+ const url = URL.createObjectURL(blob);
+ const a = document.createElement('a');
+ a.href = url;
+ a.download = 'licitaciones_' + new Date().toISOString().slice(0,10) + '.csv';
+ document.body.appendChild(a);
+ a.click();
+ document.body.removeChild(a);
+ URL.revokeObjectURL(url);
+}

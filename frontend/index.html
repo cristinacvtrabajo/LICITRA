@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LICITRA — Análisis de Contratación Pública</title>
+<link rel="icon" type="image/svg+xml" href="/public/favicon.svg">
 
 <!-- Stylesheets -->
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Instrument+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -330,7 +331,7 @@
  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
  <span id="syncBannerStatus" style="font-size:.72rem;font-family:'JetBrains Mono',monospace;color:var(--text2)"></span>
  <button class="btn btn-primary" id="syncBannerBtn" onclick="document.querySelector('.tab[data-tab=bbdd]').click()" style="display:flex;align-items:center;gap:6px;white-space:nowrap">→ Ir a Base de Datos</button>
- <button class="btn btn-ghost btn-sm" onclick="document.getElementById('syncBanner').style.display='none'"></button>
+ <button class="btn btn-ghost btn-sm" onclick="document.getElementById('syncBanner').style.display='none'" title="Cerrar" style="padding:4px 8px;font-size:1rem;line-height:1">×</button>
  </div>
  </div>
  </div>
@@ -338,14 +339,13 @@
  <div id="dataSection" style="display:none">
  <div class="stats-grid" id="statsGrid"></div>
  <div class="panel" id="colSelectorPanel">
- <div class="panel-header">
- <span class="panel-title">Columnas visibles</span>
- <div style="display:flex;gap:6px">
- <button class="btn btn-ghost btn-sm" onclick="selectAllCols()">Todas</button>
- <button class="btn btn-ghost btn-sm" onclick="selectNoneCols()">Ninguna</button>
+ <div style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none" onclick="toggleColPanel()">
+ <span class="panel-title" style="margin:0">Columnas visibles</span>
+ <span id="colToggleIcon" style="margin-left:auto;font-size:.7rem;color:var(--text3);transition:transform .2s;display:inline-block;opacity:.7">▼</span>
  </div>
- </div>
+ <div id="colChipsWrap" style="display:none;margin-top:10px">
  <div class="col-chips" id="colChips"></div>
+ </div>
  </div>
  <div class="panel" id="filterPanel">
  <div class="panel-header">
@@ -413,7 +413,7 @@
  <div style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none" onclick="toggleCpvPanel()">
  <span class="filter-label" style="margin:0">Sector CPV</span>
  <span id="cpvActiveBadge" style="display:none;align-items:center;justify-content:center;background:var(--accent);color:#fff;border-radius:999px;font-size:.65rem;font-weight:700;padding:2px 8px;font-family:'JetBrains Mono',monospace"></span>
- <span id="cpvToggleIcon" style="margin-left:auto;font-size:.75rem;color:var(--text2);transition:transform .2s;display:inline-block"> </span>
+ <span id="cpvToggleIcon" style="margin-left:auto;font-size:.7rem;color:var(--text3);transition:transform .2s;display:inline-block;opacity:.7">▼</span>
  </div>
  <div id="cpvPanel" style="display:none;margin-top:10px">
  <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
@@ -574,9 +574,9 @@
  <div class="stats-grid" id="bbddStatsGrid"></div>
  <div id="bbddEmpty" style="display:none" class="empty-state"><div class="empty-icon"></div><div class="empty-title">La base de datos está vacía</div><div class="empty-sub">Sube un archivo CSV/XLSX en la pestaña <strong>Datos</strong> y luego sincronízalo aquí</div></div>
  <div id="bbddContent" style="display:none">
- <div class="panel"><div class="filter-grid"><div class="filter-group" style="flex:2;min-width:220px"><label class="filter-label">Búsqueda libre</label><input type="text" class="filter-input" id="bbddSearch" placeholder="Objeto, órgano, adjudicatario..." oninput="aplicarFiltrosBBDD()" style="width:100%"></div><div class="filter-group"><label class="filter-label">Estado</label><select class="filter-select" id="bbddFilterEstado" onchange="aplicarFiltrosBBDD()"><option value="">Todos</option></select></div><div class="filter-group"><label class="filter-label">Tipo contrato</label><select class="filter-select" id="bbddFilterTipo" onchange="aplicarFiltrosBBDD()"><option value="">Todos</option></select></div><div class="filter-group" style="align-self:flex-end"><button class="btn btn-ghost btn-sm" onclick="resetFiltrosBBDD()">Limpiar</button></div></div></div>
+ <div class="panel"><div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap"><div class="filter-group" style="flex:2;min-width:220px"><label class="filter-label">Búsqueda libre</label><input type="text" class="filter-input" id="bbddSearch" placeholder="Objeto, órgano, adjudicatario..." oninput="aplicarFiltrosBBDD()" style="width:100%"></div><div class="filter-group" style="min-width:150px"><label class="filter-label">Estado</label><select class="filter-select" id="bbddFilterEstado" onchange="aplicarFiltrosBBDD()"><option value="">Todos los estados</option></select></div><div class="filter-group" style="min-width:150px"><label class="filter-label">Tipo contrato</label><select class="filter-select" id="bbddFilterTipo" onchange="aplicarFiltrosBBDD()"><option value="">Todos los tipos</option></select></div><div class="filter-group" style="align-self:flex-end"><button class="btn btn-ghost btn-sm" onclick="resetFiltrosBBDD()">Limpiar</button></div></div></div>
  <div class="panel" style="padding:0" id="bbddTableWrap">
- <div class="table-toolbar"><span class="table-count" id="bbddTableCount"></span><button class="btn btn-primary btn-sm" id="bbddBtnAnalizarIA" onclick="analizarBBDDconIA()" title="Carga estos datos en la pestaña Recomendación IA y lanza el análisis">Analizar con IA</button></div>
+ <div class="table-toolbar"><span class="table-count" id="bbddTableCount"></span></div>
  <div class="table-scroll"><table><thead id="bbddTableHead"></thead><tbody id="bbddTableBody"></tbody></table></div>
  <div class="pagination" id="bbddPagination"></div>
  </div>

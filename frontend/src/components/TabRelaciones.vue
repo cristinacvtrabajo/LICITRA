@@ -46,12 +46,6 @@
  <option value="50">50 por página</option>
  </select>
  </div>
- <div class="filter-group" style="align-self:flex-end">
- <button class="btn btn-primary" :disabled="iaEnCurso || !indexReady"
- @click="analizarRelacionesConIA">
- {{ iaEnCurso ? '⏳ Analizando…' : ' Analizar con IA' }}
- </button>
- </div>
  </div>
 
  <!-- Summary KPIs -->
@@ -64,7 +58,7 @@
  <div class="stat-card red">
  <div class="stat-label">Alta concentración</div>
  <div class="stat-value red">{{ highRiskCount.toLocaleString('es-ES') }}</div>
- <div class="stat-sub">score ≥ 80</div>
+ <div class="stat-sub">score ≥ 60</div>
  </div>
  <div class="stat-card lime">
  <div class="stat-label">Importe total</div>
@@ -152,7 +146,7 @@
  <button class="btn btn-ghost btn-sm"
  :disabled="iaCardLoading[cardKey(r)]"
  @click="analizarParConIA(r)">
- {{ iaCardLoading[cardKey(r)] ? '⏳ Analizando…' : ' Analizar con IA' }}
+ {{ iaCardLoading[cardKey(r)] ? 'Analizando...' : 'Analizar con IA' }}
  </button>
  </div>
 
@@ -247,9 +241,9 @@ const filteredResults = computed(() => {
  return arr
 })
 
-const highRiskCount = computed(() => filteredResults.value.filter(r => r.risk.score >= 80).length)
+const highRiskCount = computed(() => baseResults.value.filter(r => r.risk.score >= 60).length)
 const totalAmount = computed(() => filteredResults.value.reduce((s,r) => s + (r.risk.totalAmount||0), 0))
-const tieneAltaConcentracion = computed(() => filteredResults.value.some(r => r.risk.score >= 80))
+const tieneAltaConcentracion = computed(() => baseResults.value.some(r => r.risk.score >= 60))
 
 const totalPages = computed(() => Math.ceil(filteredResults.value.length / pageSize.value))
 
@@ -423,9 +417,21 @@ function buildParIAPrompt(organo, adjudicatario, risk, contratos) {
  const e = v => new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v||0)
  const san = v => String(v||'').replace(/[\x00-\x1F\x7F]/g,' ').replace(/\s+/g,' ').trim().slice(0,120)
  const pctV = (risk.concentration * 100).toFixed(1)
- const muestra = contratos.slice(0,10).map((c,i) =>
- ` ${i+1}. "${san(c.objeto)}" — ${e(c.importeConIVA)} — ${san(c.estado)}`
+ const fechaStr = c => (c.primeraPublicacion || c.fechaActualizacion || '').slice(0, 10) || 'sin fecha'
+ const recientes = [...contratos].sort((a, b) => {
+   const fa = a.primeraPublicacion || a.fechaActualizacion || ''
+   const fb = b.primeraPublicacion || b.fechaActualizacion || ''
+   return fb.localeCompare(fa)
+ }).slice(0, 10)
+ const muestra = recientes.map((c, i) =>
+   ` ${i+1}. [${fechaStr(c)}] "${san(c.objeto)}" — ${e(c.importeConIVA)} — ${san(c.estado)}`
  ).join('\n')
+ const nivelRiesgo = risk.score >= 80 ? 'RIESGO ALTO' : risk.score >= 50 ? 'RIESGO MODERADO' : 'RIESGO BAJO'
+ const tipoRiesgo = risk.concentration > 0.8
+   ? 'CONCENTRACIÓN ALTA (el órgano adjudica más del 80% de sus contratos a esta empresa)'
+   : risk.concentration > 0.3
+     ? 'CONCENTRACIÓN MODERADA (dependencia significativa del órgano hacia esta empresa)'
+     : 'EXPOSICIÓN POR VOLUMEN (la concentración es baja, el score se debe al número de contratos y/o importes elevados, no a monopolio adjudicador)'
  return `Eres un analista experto en contratación pública española.
 Analiza la relación entre este órgano contratante y este adjudicatario.
 
@@ -438,15 +444,26 @@ MÉTRICAS:
 - Importe medio: ${e(risk.avg)}
 - Concentración: ${pctV}% del órgano
 - Score de riesgo: ${risk.score}/100
+- Tipo de riesgo detectado: ${tipoRiesgo}
+
+ESCALA DE RIESGO (usa esta clasificación obligatoriamente):
+- Score 0–49 → RIESGO BAJO
+- Score 50–79 → RIESGO MODERADO
+- Score 80–100 → RIESGO ALTO
+
+Esta relación tiene score ${risk.score}/100 → clasificación: ${nivelRiesgo}.
+El tipo de riesgo es: ${tipoRiesgo}.
+Adapta tu análisis a ese tipo: si la concentración es baja, explica que el riesgo no viene de monopolio adjudicador sino del volumen contratado. No inventes concentración alta si el porcentaje es bajo.
 
 MUESTRA DE CONTRATOS:
 ${muestra||' (sin contratos disponibles)'}
 
 INSTRUCCIONES:
 ## Valoración del riesgo
+Indica "${nivelRiesgo}" y el tipo de riesgo (${tipoRiesgo.split(' (')[0]}). Explica brevemente qué factor lo provoca.
 ## Indicadores relevantes
 ## Conclusión
-Sé conciso. No repitas los datos, interprételos.`
+Sé conciso. No repitas los datos en bruto, interprételos.`
 }
 
 function renderParIAResult(risk, texto) {

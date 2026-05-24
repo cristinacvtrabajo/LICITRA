@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Círculo exterior -->
+  <circle cx="50" cy="50" r="46" fill="white" stroke="#c9d4e8" stroke-width="1.8"/>
+
+  <!-- L: trazo vertical izquierdo -->
+  <rect x="20" y="22" width="12" height="57" rx="2.5" fill="#0d1b35"/>
+  <!-- L: pie horizontal -->
+  <rect x="20" y="67" width="38" height="12" rx="2.5" fill="#0d1b35"/>
+
+  <!-- i: trazo vertical derecho -->
+  <rect x="56" y="31" width="10" height="48" rx="2.5" fill="#0d1b35"/>
+  <!-- i: punto azul -->
+  <circle cx="61" cy="20" r="6.5" fill="#1d4ed8"/>
+</svg>

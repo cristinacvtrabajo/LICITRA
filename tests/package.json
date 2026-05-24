@@ -1,0 +1,18 @@
+{
+  "name": "licitra-unit-tests",
+  "version": "1.0.0",
+  "description": "Pruebas unitarias LICITRA TFG",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run --reporter=verbose"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@pinia/testing": "^1.0.3",
+    "pinia": "^3.0.4",
+    "vitest": "^4.1.6",
+    "vue": "^3.5.34"
+  }
+}

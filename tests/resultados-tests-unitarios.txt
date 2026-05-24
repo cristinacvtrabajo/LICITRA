@@ -1,0 +1,55 @@
+
+> licitra-unit-tests@1.0.0 test
+> vitest run --reporter=verbose
+
+
+ RUN  v4.1.6 /sessions/laughing-pensive-newton/mnt/outputs/licitra-tests
+
+ ✓ tests/store-licitaciones.test.js > useLicitacionesStore -- getters Pinia > tienedatos = true cuando hay registros cargados 4ms
+ ✓ tests/store-licitaciones.test.js > useLicitacionesStore -- getters Pinia > tienedatos = false con store vacio 0ms
+ ✓ tests/store-licitaciones.test.js > useLicitacionesStore -- getters Pinia > agrupa variantes ortograficas bajo la misma clave canonica 1ms
+ ✓ tests/store-licitaciones.test.js > useLicitacionesStore -- getters Pinia > gruposEmpresa tiene 2 claves distintas para los dos proveedores 1ms
+ ✓ tests/store-licitaciones.test.js > useLicitacionesStore -- getters Pinia > empresasOrdenadas devuelve el array en orden alfabetico espanol 7ms
+ ✓ tests/store-licitaciones.test.js > useLicitacionesStore -- getters Pinia > kpis.importeTotal es la suma de _importeConIVA de la empresa seleccionada 1ms
+ ✓ tests/store-licitaciones.test.js > useLicitacionesStore -- getters Pinia > kpis.totalContratos cuenta correctamente los registros agrupados 0ms
+ ✓ tests/store-licitaciones.test.js > useLicitacionesStore -- getters Pinia > kpis.importeMedio es correcto 1ms
+ ✓ tests/store-licitaciones.test.js > useLicitacionesStore -- getters Pinia > kpis.organosCount cuenta organos unicos del grupo 1ms
+ ✓ tests/store-licitaciones.test.js > useLicitacionesStore -- getters Pinia > kpis.tasaExito refleja porcentaje adjudicados correctamente 1ms
+ ✓ tests/store-licitaciones.test.js > useLicitacionesStore -- getters Pinia > kpis es null cuando no hay empresa seleccionada 0ms
+ ✓ tests/buildColMapping.test.js > buildColMapping() > mapea cabecera exacta "Identificador" → clave "id" 2ms
+ ✓ tests/buildColMapping.test.js > buildColMapping() > mapea "Estado" → clave "estado" 0ms
+ ✓ tests/buildColMapping.test.js > buildColMapping() > mapea "Objeto del Contrato" → clave "objeto" 0ms
+ ✓ tests/buildColMapping.test.js > buildColMapping() > resuelve ambigüedad: específico gana sobre genérico (lote) 0ms
+ ✓ tests/buildColMapping.test.js > buildColMapping() > CPV Licitación/Lote → cpvLote, no cpv genérico 0ms
+ ✓ tests/buildColMapping.test.js > buildColMapping() > Importe adjudicación con impuestos → importeConIVA 0ms
+ ✓ tests/buildColMapping.test.js > buildColMapping() > Importe adjudicación con impuestos licitación/lote → importeConIVA (patrón más largo) 0ms
+ ✓ tests/buildColMapping.test.js > buildColMapping() > cabecera desconocida no aparece en el mapping 0ms
+ ✓ tests/buildColMapping.test.js > buildColMapping() > mapea correctamente un array de múltiples cabeceras (Excel real PLACE) 1ms
+ ✓ tests/buildColMapping.test.js > buildColMapping() > array vacío devuelve mapping vacío 1ms
+ ✓ tests/computeRisk.test.js > computeRisk() > score = 0 con 1 contrato, importe bajo y concentración baja 2ms
+ ✓ tests/computeRisk.test.js > computeRisk() > suma +40 cuando la concentración supera el 80 % 0ms
+ ✓ tests/computeRisk.test.js > computeRisk() > suma +20 cuando el grupo tiene exactamente 5 contratos 0ms
+ ✓ tests/computeRisk.test.js > computeRisk() > suma +20 cuando el importe medio supera 100 000 € 0ms
+ ✓ tests/computeRisk.test.js > computeRisk() > suma +20 cuando el grupo tiene exactamente 10 contratos 0ms
+ ✓ tests/computeRisk.test.js > computeRisk() > score máximo 100 con concentración alta + muchos contratos + importe alto 0ms
+ ✓ tests/computeRisk.test.js > computeRisk() > calcula correctamente totalAmount y avg 0ms
+ ✓ tests/computeRisk.test.js > computeRisk() > maneja registros con importeConIVA nulo o cero sin errores 0ms
+ ✓ tests/computeRisk.test.js > computeRisk() > concentration = 0 cuando totalOrg es 0 (evita división por cero) 0ms
+ ✓ tests/computeRisk.test.js > computeRisk() > avg = 0 y score = 0 con grupo vacío 0ms
+ ✓ tests/normHeader.test.js > normHeader() > convierte a minúsculas 2ms
+ ✓ tests/normHeader.test.js > normHeader() > elimina tildes y diacríticos 0ms
+ ✓ tests/normHeader.test.js > normHeader() > reemplaza separadores no alfanuméricos por espacio 0ms
+ ✓ tests/normHeader.test.js > normHeader() > colapsa espacios múltiples 0ms
+ ✓ tests/normHeader.test.js > normHeader() > reemplaza NBSP (\u00a0) por espacio normal 0ms
+ ✓ tests/normHeader.test.js > normHeader() > elimina guiones y puntos 0ms
+ ✓ tests/normHeader.test.js > normHeader() > devuelve cadena vacía para entrada vacía 0ms
+ ✓ tests/normHeader.test.js > normHeader() > devuelve cadena vacía para null 0ms
+ ✓ tests/normHeader.test.js > normHeader() > devuelve cadena vacía para undefined 1ms
+ ✓ tests/normHeader.test.js > normHeader() > maneja cabeceras reales del PLACE (ñ, paréntesis) 0ms
+ ✓ tests/normHeader.test.js > normHeader() > normaliza correctamente cabecera de adjudicatario con lote 0ms
+
+ Test Files  4 passed (4)
+      Tests  42 passed (42)
+   Start at  17:59:34
+   Duration  2.55s (transform 102ms, setup 0ms, import 537ms, tests 38ms, environment 0ms)
+

@@ -81,9 +81,20 @@
  </div>
  </div>
 
+ <div class="filter-group">
+  <label class="filter-label">Período</label>
+  <select class="filter-select" v-model="periodoFecha" style="width:100%">
+   <option value="">Todas las fechas</option>
+   <option value="3m">Últimos 3 meses</option>
+   <option value="6m">Últimos 6 meses</option>
+   <option value="1y">Último año</option>
+   <option value="3y">Últimos 3 años</option>
+  </select>
+ </div>
+
  <div class="filter-group" style="align-self:flex-end">
  <button class="btn btn-primary" :disabled="loading" @click="runAnalysis">
- {{ loading ? 'Analizando…' : 'Analizar con IA' }}
+ {{ loading ? 'Analizando…' : 'Analizar' }}
  </button>
  </div>
  </div>
@@ -225,7 +236,7 @@
  {{ item.licit.objeto || '—' }}
  <button @click="openDetalleModal(item.licit)"
  style="margin-left:8px;padding:4px 10px;font-size:.75rem;background:#1d4ed8;color:white;border:none;border-radius:4px;cursor:pointer;display:inline-flex;align-items:center;gap:4px">
- 📋 Ver detalle
+ Ver detalle
  </button>
  <span v-if="fechaDisplay(item.licit)"
  style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--text2);margin-left:8px">
@@ -278,19 +289,15 @@
  style="padding:4px 12px;font-size:.75rem;background:#8b5cf6;color:white;border:none;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:6px">
  <span> </span> Generar documento
  </button>
- <button @click="openDocsModal(item.licit)"
- style="padding:4px 12px;font-size:.75rem;background:#10b981;color:white;border:none;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:6px">
- <span> </span> Buscar documentos
+ <button v-if="!groqCache[groqKey(item.licit)]" @click="solicitarGroq(item)"
+ style="padding:4px 12px;font-size:.75rem;background:#1d4ed8;color:white;border:none;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+ Analizar con IA
  </button>
  </div>
 
  <!-- Groq análisis -->
- <div class="ia-groq-analysis" style="margin-top:15px">
+ <div v-if="groqCache[groqKey(item.licit)] || groqLoading[groqKey(item.licit)]" class="ia-groq-analysis" style="margin-top:15px">
  <div v-if="groqCache[groqKey(item.licit)]" v-html="renderGroqHTML(groqCache[groqKey(item.licit)])"></div>
- <button v-else @click="solicitarGroq(item)"
- style="cursor:pointer;font-size:.85rem;font-weight:500;padding:6px 14px;border-radius:6px;background:#1d4ed8;color:white;border:none">
- Analizar con IA
- </button>
  <div v-if="groqLoading[groqKey(item.licit)]" class="groq-loading">
  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="2.5" stroke-linecap="round">
  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83">
@@ -325,7 +332,7 @@
  <div class="modal" style="max-width:780px;width:94%;max-height:90vh;display:flex;flex-direction:column" @click.stop>
  <div class="modal-head" style="flex-shrink:0">
  <div class="modal-title" style="font-size:.95rem;line-height:1.4;max-width:640px">
- 📋 {{ detalleLicit.objeto || 'Detalle de licitación' }}
+ {{ detalleLicit.objeto || 'Detalle de licitación' }}
  </div>
  <button class="modal-close" @click="showDetalleModal=false" aria-label="Cerrar">
  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -593,7 +600,7 @@
  <div style="display:flex;flex-wrap:wrap;gap:8px">
  <button v-for="tipo in TIPOS_DOCUMENTO" :key="tipo.id"
  @click="generarDocumento(tipo.id, tipo.nombre)"
- :style="`padding:8px 16px;background:${genTipoId===tipo.id?'var(--accent)':'var(--surface)'};color:${genTipoId===tipo.id?'white':'var(--text)'};border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:.8rem`">
+ :style="`padding:8px 16px;background:${genTipoId===tipo.id?'#1d4ed8':'var(--surface)'};color:${genTipoId===tipo.id?'#ffffff':'var(--text)'};border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:.8rem`">
  {{ tipo.nombre }}
  </button>
  </div>
@@ -691,11 +698,11 @@ const SECTOR_CPV = {
  'Consultoría y servicios profesionales': ['79','73','72','80']
 }
 const TIPOS_DOCUMENTO = [
- { id:'presentacion', nombre:' Carta de presentación' },
- { id:'tecnica', nombre:' Oferta técnica' },
- { id:'economica', nombre:' Oferta económica' },
- { id:'anexos', nombre:' Anexos' },
- { id:'cv', nombre:' Perfil del equipo' }
+ { id:'presentacion', nombre:'Carta de presentación' },
+ { id:'tecnica', nombre:'Oferta técnica' },
+ { id:'economica', nombre:'Oferta económica' },
+ { id:'anexos', nombre:'Anexos' },
+ { id:'cv', nombre:'Perfil del equipo' }
 ]
 const PROMPTS_TIPO = {
  presentacion: 'Redacta una carta de presentación formal y profesional para presentar la oferta.',
@@ -713,6 +720,7 @@ const iaLimit = ref(10)
 const importeMin = ref(0)
 const importeMaxStr = ref('')
 const umbralConc = ref(60)
+const periodoFecha = ref('')
 
 const lugaresExcluidos = ref(new Set())
 const lugarSearch = ref('')
@@ -941,7 +949,25 @@ async function copiarPortapapeles() {
  } catch { showToast('No se pudo copiar', 'error') }
 }
 
-// Modal documentos 
+function descargarDocumento() {
+ if (!genContent.value) return
+ const tipo = genTipoNombre.value.trim() || 'documento'
+ const objeto = (genLicit.value?.objeto || 'licitacion').slice(0, 50)
+ const nombreArchivo = `${tipo} - ${objeto}`
+  .normalize('NFD').replace(/[̀-ͯ]/g, '')  // quitar tildes
+  .replace(/[^a-zA-Z0-9 _\-]/g, '')                   // solo caracteres seguros
+  .trim()
+  .replace(/\s+/g, '_') + '.txt'
+ const blob = new Blob([genContent.value], { type: 'text/plain;charset=utf-8' })
+ const url = URL.createObjectURL(blob)
+ const a = document.createElement('a')
+ a.href = url
+ a.download = nombreArchivo
+ a.click()
+ URL.revokeObjectURL(url)
+}
+
+// Modal documentos
 async function openDocsModal(licit) {
  const link = licit.link || ''
  const enlacePerfil = licit.enlacePerfil || ''
@@ -1232,7 +1258,17 @@ function runAnalysis() {
  if (lugaresExcluidos.value.size > 0) {
  sourceBase = sourceBase.filter(r => !lugaresExcluidos.value.has(r.lugarEjecucion||r.lugarLote||''))
  }
- if (!sourceBase.length) { alert('No hay licitaciones para analizar.'); return }
+ if (periodoFecha.value) {
+  const ahora = new Date()
+  const meses = { '3m': 3, '6m': 6, '1y': 12, '3y': 36 }[periodoFecha.value]
+  const corte = new Date(ahora.getFullYear(), ahora.getMonth() - meses, ahora.getDate())
+  sourceBase = sourceBase.filter(r => {
+   const f = r.primeraPublicacion || r.fechaActualizacion || ''
+   if (!f) return false
+   return new Date(f) >= corte
+  })
+ }
+ if (!sourceBase.length) { alert('No hay licitaciones para analizar en el período seleccionado.'); return }
  iaSource.value = sourceBase
  iaResults.value = []
  iaOffset.value = 0

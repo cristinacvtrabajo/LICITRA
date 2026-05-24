@@ -457,7 +457,7 @@ async function exportarCopiaSeguridad() {
  }
 
  const btn = document.getElementById('bbddBtnBackup');
- if (btn) { btn.disabled = true; btn.textContent = '⏳ Descargando...'; }
+ if (btn) { btn.disabled = true; btn.textContent = 'Descargando...'; }
  setBBDDStatus('info', 'Descargando todos los registros para la copia de seguridad...');
 
  try {
@@ -595,7 +595,7 @@ function restaurarDesdeCopia() {
  */
 async function _aplicarRestauracion(rows, fileName, meta) {
  const btn = document.getElementById('bbddBtnRestaurar');
- if (btn) { btn.disabled = true; btn.textContent = '⏳ Restaurando...'; }
+ if (btn) { btn.disabled = true; btn.textContent = 'Restaurando...'; }
  setBBDDStatus('info', `Restaurando ${rows.length} registros desde copia...`);
  updateBBDDProgress(0, rows.length || 1);
 
@@ -652,7 +652,7 @@ async function subirASupabase() {
  }
 
  const btn = document.getElementById('bbddBtnSubir');
- if (btn) { btn.disabled = true; btn.textContent = '⏳ Sincronizando...'; }
+ if (btn) { btn.disabled = true; btn.textContent = 'Sincronizando...'; }
  setBBDDStatus('info', `Preparando ${allData.length} registros...`);
 
  const fileName = document.querySelector('.upload-mini-text strong')?.textContent || 'archivo';
@@ -693,20 +693,21 @@ function updateBBDDProgress(done, total) {
  wrap.style.display = done > 0 && done < total ? 'block' : 'none';
 }
 
-// LOG DE SUBIDAS 
-async function cargarLogSubidas() {
- if (!isManager) return;
+// LOG DE SUBIDAS
+const LOG_PAGE_SIZE = 5;
+let _logData = [];
+let _logPage = 1;
+
+function _renderLogPage(page) {
  const logWrap = document.getElementById('bbddLogWrap');
- if (!logWrap) return;
+ if (!logWrap || !_logData.length) return;
 
- const resp = await fetch('/api/sync/log', { credentials: 'include' });
- const json = resp.ok ? await resp.json() : null;
- const data = json?.data;
-
- if (!data?.length) {
- logWrap.innerHTML = '<p style="color:var(--text3);font-size:12px">Sin sincronizaciones registradas aún.</p>';
- return;
- }
+ const data = _logData;
+ const totalPages = Math.ceil(data.length / LOG_PAGE_SIZE);
+ _logPage = Math.max(1, Math.min(page, totalPages));
+ const start = (_logPage - 1) * LOG_PAGE_SIZE;
+ const pageRows = data.slice(start, start + LOG_PAGE_SIZE);
+ const allIds = data.map(r => r.id);
 
  const badgeStatus = (s) => {
  const st = String(s || '').toLowerCase();
@@ -714,13 +715,24 @@ async function cargarLogSubidas() {
  if (st === 'rolled_back') return `<span class="badge badge-amber">rolled_back</span>`;
  if (st === 'failed') return `<span class="badge badge-red">failed</span>`;
  if (st === 'applying') return `<span class="badge badge-cyan">applied</span>`;
- return `<span class="badge badge-gray">${escHtml(st || '—')}</span>`;
+ return `<span class="badge badge-gray">${escHtml(st || '\u2014')}</span>`;
  };
-
- const allIds = data.map(r => r.id);
 
  const svgTrash = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`;
  const svgRestore = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>`;
+
+ const paginationHtml = totalPages > 1 ? `
+ <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;font-size:12px;color:var(--text2)">
+ <button onclick="bbddLogGoPage(${_logPage - 1})"
+ ${_logPage <= 1 ? 'disabled' : ''}
+ style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:none;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text2);transition:background .15s;${_logPage <= 1 ? 'opacity:.35;cursor:default' : ''}"
+ onmouseover="if(!this.disabled)this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">&#8249;</button>
+ <span style="font-family:'JetBrains Mono',monospace;font-size:11px">${_logPage} / ${totalPages}</span>
+ <button onclick="bbddLogGoPage(${_logPage + 1})"
+ ${_logPage >= totalPages ? 'disabled' : ''}
+ style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:none;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text2);transition:background .15s;${_logPage >= totalPages ? 'opacity:.35;cursor:default' : ''}"
+ onmouseover="if(!this.disabled)this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">&#8250;</button>
+ </div>` : '';
 
  logWrap.innerHTML = `
  ${isAdmin ? `<div style="display:flex;justify-content:flex-end;margin-bottom:8px">
@@ -740,27 +752,26 @@ async function cargarLogSubidas() {
  <th style="text-align:right;padding:6px 10px;color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:1px">Total</th>
  <th style="text-align:right;padding:6px 10px;color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:1px">Nuevas</th>
  <th style="text-align:right;padding:6px 10px;color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:1px">Actualizadas</th>
- <th style="text-align:left;padding:6px 10px;color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:1px">Admin</th>
  <th style="text-align:left;padding:6px 10px;color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:1px">Estado</th>
  <th style="text-align:right;padding:6px 10px;color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:1px">Acción</th>
  <th style="padding:6px 8px;width:32px"></th>
  </tr>
  </thead>
  <tbody>
- ${data.map(row => {
+ ${pageRows.map(row => {
  const changes = row.sync_changes || [];
  const inserted = changes.filter(c => c.action === 'insert').length;
  const updated = changes.filter(c => c.action === 'update').length;
- const completed = changes.length > 0 || String(row.status).toLowerCase() === 'applied';
- const canRollback = completed && String(row.status).toLowerCase() !== 'rolled_back';
+ const st = String(row.status || '').toLowerCase();
+ const completed = changes.length > 0 || st === 'applied';
+ const canRollback = st !== 'rolled_back' && st !== 'failed';
  return `
  <tr data-batch-id="${row.id}" style="border-bottom:1px solid var(--border)">
  <td style="padding:7px 10px;color:var(--text2)">${new Date(row.created_at).toLocaleString('es-ES')}</td>
- <td style="padding:7px 10px;color:var(--text);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(row.file_name || '—')}</td>
- <td style="padding:7px 10px;color:var(--text);text-align:right;font-family:'JetBrains Mono',monospace">${row.rows_total ?? changes.length ?? '—'}</td>
+ <td style="padding:7px 10px;color:var(--text);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(row.file_name || '\u2014')}</td>
+ <td style="padding:7px 10px;color:var(--text);text-align:right;font-family:'JetBrains Mono',monospace">${row.rows_total ?? changes.length ?? '\u2014'}</td>
  <td style="padding:7px 10px;color:var(--green);text-align:right;font-family:'JetBrains Mono',monospace">+${inserted}</td>
- <td style="padding:7px 10px;color:var(--amber);text-align:right;font-family:'JetBrains Mono',monospace">↺ ${updated}</td>
- <td style="padding:7px 10px;color:var(--text3)">${escHtml(row.user_email || '—')}</td>
+ <td style="padding:7px 10px;color:var(--amber);text-align:right;font-family:'JetBrains Mono',monospace">\u21ba ${updated}</td>
  <td style="padding:7px 10px">${badgeStatus(completed ? 'applied' : row.status)}</td>
  <td style="padding:7px 10px;text-align:right">
  ${isAdmin && canRollback
@@ -769,7 +780,7 @@ async function cargarLogSubidas() {
  onclick="rollbackDesdeHistorial('${row.id}')">
  ${svgRestore} Restaurar
  </button>`
- : `<span style="color:var(--text3);font-size:11px">—</span>`}
+ : `<span style="color:var(--text3);font-size:11px">\u2014</span>`}
  </td>
  <td style="padding:7px 8px;text-align:center">
  ${isAdmin ? `<button title="Eliminar este registro del historial"
@@ -783,8 +794,30 @@ async function cargarLogSubidas() {
  </tr>`;
  }).join('')}
  </tbody>
- </table>`;
+ </table>
+ ${paginationHtml}`;
 }
+
+async function cargarLogSubidas() {
+ if (!isManager) return;
+ const logWrap = document.getElementById('bbddLogWrap');
+ if (!logWrap) return;
+
+ const resp = await fetch('/api/sync/log', { credentials: 'include' });
+ const json = resp.ok ? await resp.json() : null;
+ const data = json?.data;
+
+ if (!data?.length) {
+ logWrap.innerHTML = '<p style="color:var(--text3);font-size:12px">Sin sincronizaciones registradas aún.</p>';
+ return;
+ }
+
+ _logData = data;
+ _logPage = 1;
+ _renderLogPage(1);
+}
+
+window.bbddLogGoPage = function(n) { _renderLogPage(n); };
 
 async function rollbackDesdeHistorial(batchId) {
  if (!isAdmin) return;
@@ -839,10 +872,13 @@ async function eliminarEntradaHistorial(batchId) {
  const result = await resp.json();
  if (!resp.ok || !result.success) throw new Error(result.error || 'Error del servidor');
 
- // Si la tabla quedó vacía, mostrar mensaje vacío
- const tbody = document.querySelector('#bbddLogWrap tbody');
- if (tbody && tbody.querySelectorAll('tr').length === 0) {
+ _logData = _logData.filter(r => r.id !== batchId);
+ if (!_logData.length) {
  if (logWrap) logWrap.innerHTML = '<p style="color:var(--text3);font-size:12px">Sin sincronizaciones registradas aún.</p>';
+ } else {
+ const totalPages = Math.ceil(_logData.length / LOG_PAGE_SIZE);
+ if (_logPage > totalPages) _logPage = totalPages;
+ _renderLogPage(_logPage);
  }
 
  } catch (e) {

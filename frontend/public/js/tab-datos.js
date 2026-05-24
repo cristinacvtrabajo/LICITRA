@@ -98,6 +98,15 @@ function toggleCpvPanel() {
  if (icon) icon.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
 }
 
+function toggleColPanel() {
+ const wrap = document.getElementById('colChipsWrap');
+ const icon = document.getElementById('colToggleIcon');
+ if (!wrap) return;
+ const open = wrap.style.display === 'none' || wrap.style.display === '';
+ wrap.style.display = open ? 'block' : 'none';
+ if (icon) icon.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+
 function resetCpvFilter() {
  _cpvSeleccionados.clear();
  buildCpvFilter();
@@ -457,7 +466,9 @@ function renderBody(cols) {
  ? `<span class="amount">${formatEUR(n)}</span>`
  : '<span style="color:var(--text3)">—</span>';
  } else if (c.key === 'link' || c.key === 'enlacePerfil') {
- display = val ? `<a class="link-cell" href="${val}" target="_blank" rel="noopener">↗ Ver</a>` : '';
+ // Filtrar URLs de sesión WebSphere (!ut/p/z1/...) que expiran — solo mostrar links estables
+ const safeHref = val && !val.includes('!ut/p/') ? val : null;
+ display = safeHref ? `<a class="link-cell" href="${safeHref}" target="_blank" rel="noopener">↗ Ver</a>` : '';
  } else if (c.key === 'estado') {
  display = badgeEstado(val);
  } else if (c.key === 'tipoProcedimiento') {
@@ -650,12 +661,19 @@ function openModal(idx) {
  return `<div class="detail-item"><div class="detail-key">${f.label}</div><div class="detail-val amount" style="color:${n ? 'var(--lime)' : 'var(--text3)'}">${display}</div></div>`;
  };
 
- const linkHtml = row.link
- ? `<div class="detail-item full"><div class="detail-key">Enlace licitación</div><div class="detail-val"><a href="${row.link}" target="_blank" rel="noopener">↗ Ver en portal de contratación</a></div></div>`
+ // Solo mostrar enlace externo si hay un link directo real en la BD.
+ // NO generar URLs de búsqueda por expediente — llevan a resultados genéricos, no a la licitación.
+ const _portalUrl = (() => {
+   const link = row.link || '';
+   return (link.startsWith('http') && !link.includes('!ut/p/')) ? link : null;
+ })();
+ const linkHtml = _portalUrl
+ ? `<div class="detail-item full"><div class="detail-key">Enlace licitación</div><div class="detail-val"><a href="${_portalUrl}" target="_blank" rel="noopener">↗ Ver en portal de contratación</a></div></div>`
  : '';
 
- const linkPerfilHtml = row.enlacePerfil
- ? `<div class="detail-item full"><div class="detail-key">Perfil del contratante</div><div class="detail-val"><a href="${row.enlacePerfil}" target="_blank" rel="noopener">↗ Ver perfil OC</a></div></div>`
+ const _perfilUrl = row.enlacePerfil && !row.enlacePerfil.includes('!ut/p/') ? row.enlacePerfil : null;
+const linkPerfilHtml = _perfilUrl
+ ? `<div class="detail-item full"><div class="detail-key">Perfil del contratante</div><div class="detail-val"><a href="${_perfilUrl}" target="_blank" rel="noopener">↗ Ver perfil OC</a></div></div>`
  : '';
 
  document.getElementById('modalBody').innerHTML = `
@@ -681,19 +699,24 @@ function closeModalBtn() {
  document.getElementById('modalOverlay').classList.remove('open');
 }
 
-// EXPORTAR CSV 
+// EXPORTAR CSV
 function exportCSV() {
  const cols = COL_MAP.filter(c => visibleCols.includes(c.key));
- const header = cols.map(c => c.label).join(';');
- const rows = filteredData.map(r =>
- cols.map(c => `"${String(r[c.key] || '').replace(/"/g, '""')}"`).join(';')
+ const header = cols.map(c => '"' + (c.match[0] || c.label) + '"').join(';');
+ const rows = filteredData.map(row =>
+ cols.map(c => {
+ const v = row[c.key] ?? '';
+ return '"' + String(v).replace(/"/g, '""') + '"';
+ }).join(';')
  );
  const csv = [header, ...rows].join('\n');
- const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+ const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
  const url = URL.createObjectURL(blob);
  const a = document.createElement('a');
  a.href = url;
- a.download = 'licitaciones_filtradas.csv';
+ a.download = 'licitaciones_' + new Date().toISOString().slice(0,10) + '.csv';
+ document.body.appendChild(a);
  a.click();
+ document.body.removeChild(a);
  URL.revokeObjectURL(url);
 }

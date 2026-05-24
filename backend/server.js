@@ -95,7 +95,7 @@ const iaLimiter = rateLimit({
 app.use('/api/auth/login', loginLimiter);
 app.use('/api/auth/register', loginLimiter);
 // /api/sync/upload sin límite — la sincronización puede tardar y enviar muchos lotes
-app.use('/api/sync/restore', syncWriteLimiter);   // restaurar backup
+// /api/sync/restore sin límite — igual que upload, envía muchos lotes al restaurar un backup
 app.use('/api/sync/rollback', syncWriteLimiter);  // rollback
 app.use('/api/ia', iaLimiter);
 // /api/sync/backup, /tabla, /stats, /filtros, /log -> sin límite (lecturas internas)

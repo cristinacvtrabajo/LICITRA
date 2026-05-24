@@ -43,12 +43,20 @@ router.post('/', requireAuth, async (req, res) => {
   const { identificador, nombre, expediente, estado, importe } = req.body;
   if (!identificador) return res.status(400).json({ success: false, error: 'identificador requerido' });
 
+  // Asegurar que identificador sea siempre string (el campo en BD es TEXT)
+  const idStr = String(identificador);
+
+  // Borrar registro previo si existe (evita conflicto de constraint compuesto)
+  await supabase
+    .from('seguimientos')
+    .delete()
+    .eq('user_email', email)
+    .eq('identificador', idStr);
+
+  // Insertar el nuevo seguimiento
   const { error } = await supabase
     .from('seguimientos')
-    .upsert(
-      { user_email: email, identificador, nombre, expediente, estado_al_marcar: estado, importe },
-      { onConflict: 'user_email,identificador' }
-    );
+    .insert({ user_email: email, identificador: idStr, nombre, expediente, estado_al_marcar: estado, importe });
 
   if (error) {
     console.error('[seguimientos] POST error:', error);

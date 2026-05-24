@@ -375,6 +375,54 @@ router.post('/upload', requireAdmin, async (req, res) => {
   }
 });
 
+// ==================== GET /api/sync/diagnostico ====================
+// Diagnóstico rápido: muestra si los campos críticos tienen datos
+router.get('/diagnostico', requireManagerOrAdmin, async (req, res) => {
+  try {
+    // Muestra 5 filas con los campos clave
+    const { data: muestra, error: e1 } = await supabase
+      .from('licitaciones_filtradas')
+      .select('identificador, importe_adjudicacio_1_, presupuesto_base_c_, el_adjudicatario_es_, adjudicatario_licitaci_, estado')
+      .limit(5);
+    if (e1) throw e1;
+
+    // Cuenta cuántos tienen importe relleno
+    const { count: conImporte, error: e2 } = await supabase
+      .from('licitaciones_filtradas')
+      .select('*', { count: 'exact', head: true })
+      .not('importe_adjudicacio_1_', 'is', null)
+      .neq('importe_adjudicacio_1_', 0);
+
+    const { count: conPresupuesto, error: e3 } = await supabase
+      .from('licitaciones_filtradas')
+      .select('*', { count: 'exact', head: true })
+      .not('presupuesto_base_c_', 'is', null)
+      .neq('presupuesto_base_c_', 0);
+
+    const { count: conPyme, error: e4 } = await supabase
+      .from('licitaciones_filtradas')
+      .select('*', { count: 'exact', head: true })
+      .not('el_adjudicatario_es_', 'is', null)
+      .neq('el_adjudicatario_es_', '');
+
+    const { count: total, error: e5 } = await supabase
+      .from('licitaciones_filtradas')
+      .select('*', { count: 'exact', head: true });
+
+    res.json({
+      success: true,
+      total: total || 0,
+      conImporte: conImporte || 0,
+      conPresupuesto: conPresupuesto || 0,
+      conPyme: conPyme || 0,
+      muestra: muestra || [],
+    });
+  } catch (error) {
+    console.error('[sync] /diagnostico error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ==================== GET /api/sync/backup ====================
 router.get('/backup', requireAuth, async (req, res) => {
   try {
@@ -400,7 +448,7 @@ router.get('/backup', requireAuth, async (req, res) => {
 // ==================== POST /api/sync/restore ====================
 router.post('/restore', requireManagerOrAdmin, async (req, res) => {
   try {
-    const { filas } = req.body;
+    const filas = req.body.filas || req.body.rows;
     if (!filas || !Array.isArray(filas)) {
       return res.status(400).json({ success: false, error: 'Se requiere array de filas.' });
     }
@@ -432,44 +480,71 @@ async function _notificarSeguimientos(identificadoresActualizados, fileName) {
 
   if (segsError || !segs?.length) return;
 
-  // 2. Obtener los datos actuales de esas licitaciones
+  // 2. Obtener los datos actuales de esas licitaciones desde la BD
   const ids = [...new Set(segs.map(s => s.identificador))];
-  const { data: actuales, error: actError } = await supabase
+  const { data: licitaciones, error: licitError } = await supabase
     .from('licitaciones_filtradas')
-    .select('identificador,estado,adjudicatario_licitaci_,importe_adjudicacio_1_,resultado_licitacion_l_,objeto_del_contrato,numero_de_expediente')
+    .select('identificador, estado, adjudicatario_licitaci_, importe_adjudicacio_1_, resultado_licitacion_l_')
     .in('identificador', ids);
 
-  if (actError || !actuales?.length) return;
+  if (licitError || !licitaciones?.length) return;
 
-  const actualesMap = new Map(actuales.map(r => [String(r.identificador), r]));
+  const licitMap = Object.fromEntries(licitaciones.map(l => [String(l.identificador), l]));
 
-  // 3. Agrupar cambios por usuario
+  // 3. Agrupar seguimientos por usuario y detectar cambios
   const porUsuario = {};
-  for (const seg of segs) {
-    const actual = actualesMap.get(String(seg.identificador));
-    if (!actual) continue;
+  const actualizarSeguimientos = [];
 
+  for (const seg of segs) {
+    const licit = licitMap[String(seg.identificador)];
+    if (!licit) continue;
+
+    const estadoActual   = licit.estado || '';
+    const estadoAnterior = seg.estado_al_marcar || '';
     const cambios = [];
-    if (seg.estado_al_marcar && actual.estado && seg.estado_al_marcar !== actual.estado)
-      cambios.push(`Estado: <em>${seg.estado_al_marcar}</em> → <strong>${actual.estado}</strong>`);
-    if (actual.adjudicatario_licitaci_)
-      cambios.push(`Adjudicatario: <strong>${actual.adjudicatario_licitaci_}</strong>`);
-    if (actual.importe_adjudicacio_1_)
-      cambios.push(`Importe adjudicado: <strong>${Number(actual.importe_adjudicacio_1_).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</strong>`);
-    if (actual.resultado_licitacion_l_)
-      cambios.push(`Resultado: <strong>${actual.resultado_licitacion_l_}</strong>`);
+
+    if (estadoActual && estadoActual !== estadoAnterior) {
+      cambios.push(`Estado: <em>${estadoAnterior || 'Desconocido'}</em> → <strong>${estadoActual}</strong>`);
+    }
+    if (licit.adjudicatario_licitaci_) {
+      cambios.push(`Adjudicatario: <strong>${licit.adjudicatario_licitaci_}</strong>`);
+    }
+    if (licit.importe_adjudicacio_1_ && Number(licit.importe_adjudicacio_1_) > 0) {
+      const imp = Number(licit.importe_adjudicacio_1_).toLocaleString('es-ES', { minimumFractionDigits: 2 });
+      cambios.push(`Importe adjudicado: <strong>${imp} €</strong>`);
+    }
+
+    if (!cambios.length) continue;
 
     if (!porUsuario[seg.user_email]) porUsuario[seg.user_email] = [];
     porUsuario[seg.user_email].push({
-      nombre:     actual.objeto_del_contrato || seg.nombre || '(sin nombre)',
-      expediente: actual.numero_de_expediente || seg.expediente || '—',
+      nombre:     seg.nombre || 'Licitación',
+      expediente: seg.expediente || '',
       cambios,
     });
+
+    if (estadoActual && estadoActual !== estadoAnterior) {
+      actualizarSeguimientos.push({ ...seg, estado_al_marcar: estadoActual });
+    }
   }
 
-  // 4. Enviar un email por usuario
+  // 4. Enviar emails agrupados por usuario
   for (const [email, cambiosList] of Object.entries(porUsuario)) {
-    await enviarNotificacionSeguimiento(email, cambiosList, fileName);
+    try {
+      await enviarNotificacionSeguimiento(email, cambiosList, fileName);
+      console.log(`[seguimientos] Email enviado a ${email} — ${cambiosList.length} cambio(s)`);
+    } catch (e) {
+      console.error(`[seguimientos] Error enviando email a ${email}:`, e.message);
+    }
+  }
+
+  // 5. Actualizar estado_al_marcar en BD para no re-notificar lo mismo
+  for (const seg of actualizarSeguimientos) {
+    await supabase
+      .from('seguimientos')
+      .update({ estado_al_marcar: seg.estado_al_marcar })
+      .eq('user_email', seg.user_email)
+      .eq('identificador', seg.identificador);
   }
 }
 

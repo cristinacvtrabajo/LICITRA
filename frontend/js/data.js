@@ -89,10 +89,14 @@ function buildStats(dataSet = null) {
  const pymesSet = new Set();
  let conAdjudicatario = 0;
  let pendientes = 0;
- 
+ let pymesCount = 0; // contador directo de registros PYME (sin requerir adjudicatario)
+
  for (const r of data) {
  if (/pendiente/i.test(r.estado || '')) pendientes++;
- 
+
+ // Contar PYMEs directamente desde el campo esPyme (no requiere adjudicatario)
+ if (/s[ií]|yes|true|pyme/i.test(r.esPyme || '')) pymesCount++;
+
  let adj = r.adjudicatario || r.adjudicatario_licitaci_ || '';
  if (adj && adj !== '' && adj !== 'null') {
  const adjNorm = normEmpresa(String(adj));
@@ -104,13 +108,16 @@ function buildStats(dataSet = null) {
  }
  }
  }
- 
+
  let organo = r.organo || r.organo_de_contratac_ || '';
  if (organo && organo !== '' && organo !== 'null') {
  const organoNorm = normEmpresa(String(organo));
  if (organoNorm && organoNorm.length > 3) organosSet.add(organoNorm);
  }
  }
+
+ // Usar el mayor de los dos contadores: empresas PYME distintas (si hay adj.) o registros PYME directos
+ const pymesTotal = pymesSet.size > 0 ? pymesSet.size : pymesCount;
 
  const statsGrid = document.getElementById('statsGrid');
  if (statsGrid) {
@@ -121,9 +128,45 @@ function buildStats(dataSet = null) {
  statCard('amber', pendientes.toLocaleString('es-ES'),'Pendientes', 'de adjudicación') +
  statCard('orange', organosSet.size.toLocaleString('es-ES'), 'Órganos contratantes', 'distintos') +
  statCard('red', adjudicatariosSet.size.toLocaleString('es-ES'), 'Adjudicatarios', 'distintos') +
- statCard('lime', pymesSet.size.toLocaleString('es-ES'), 'PYMES adjudicatarias', 'detectadas');
+ statCard('lime', pymesTotal.toLocaleString('es-ES'), 'PYMES adjudicatarias', 'detectadas');
+
+ // ── PANEL DE DIAGNÓSTICO VISIBLE ──
+ if (importeTotal === 0 && total > 0) {
+ const conImporte = data.filter(r => (r.importeConIVA || 0) > 0).length;
+ const conPresupuesto = data.filter(r => (r.presupuestoConIVA || 0) > 0 || (r.presupuestoLoteConIVA || 0) > 0).length;
+ const conPyme = data.filter(r => /s[ií]|yes|true|pyme/i.test(r.esPyme || '')).length;
+ const muestra = data.slice(0, 1)[0] || {};
+
+ let diagHtml = `<div id="diagPanel" style="
+ margin-top:16px; padding:14px 18px; background:#fffbe6; border:1.5px solid #f59e0b;
+ border-radius:10px; font-size:13px; color:#78350f;">
+ <strong>Diagnóstico de datos (por qué los KPIs muestran 0):</strong>
+ <ul style="margin:8px 0 0 0; padding-left:18px; line-height:1.8">
+ <li>Registros con importe adjudicación relleno: <strong>${conImporte} de ${total}</strong></li>
+ <li>Registros con presupuesto relleno: <strong>${conPresupuesto} de ${total}</strong></li>
+ <li>Registros marcados como PYME: <strong>${conPyme} de ${total}</strong></li>
+ <li>Valor importeConIVA primera fila: <strong>${JSON.stringify(muestra.importeConIVA)}</strong></li>
+ <li>Valor presupuestoConIVA primera fila: <strong>${JSON.stringify(muestra.presupuestoConIVA)}</strong></li>
+ <li>Valor esPyme primera fila: <strong>${JSON.stringify(muestra.esPyme)}</strong></li>
+ </ul>
+ <p style="margin:8px 0 0 0; color:#92400e;">
+ ${conImporte === 0 && conPresupuesto === 0
+ ? 'Los campos de importe están vacíos en la base de datos. Los datos subidos no incluyen importes monetarios.'
+ : conImporte === 0
+ ? 'No hay importes de adjudicación, pero sí presupuestos. Revisa la columna "Importe adjudicación con impuestos".'
+ : ''}
+ </p>
+ <button onclick="document.getElementById(\'diagPanel\').remove()" style="
+ margin-top:8px; padding:4px 12px; border:1px solid #f59e0b; border-radius:6px;
+ background:transparent; cursor:pointer; font-size:12px; color:#78350f;">
+ Cerrar diagnóstico
+ </button>
+ </div>`;
+ statsGrid.insertAdjacentHTML('afterend', diagHtml);
  }
- 
+ // ── FIN PANEL DIAGNÓSTICO ──
+ }
+
  updateHeaderStats();
  mostrarOrigenDatos();
 }
@@ -255,8 +298,8 @@ function normalizeRow(row) {
  return 0;
  };
  
- obj.importeConIVA = parseImporte(obj.importeConIVA) || parseImporte(obj.presupuestoConIVA) || 0;
- obj.importeSinIVA = parseImporte(obj.importeSinIVA) || parseImporte(obj.presupuestoSinIVA) || 0;
+ obj.importeConIVA = parseImporte(obj.importeConIVA) || parseImporte(obj.presupuestoLoteConIVA) || parseImporte(obj.presupuestoConIVA) || 0;
+ obj.importeSinIVA = parseImporte(obj.importeSinIVA) || parseImporte(obj.presupuestoLoteSinIVA) || parseImporte(obj.presupuestoSinIVA) || 0;
  obj.valorEstimado = parseImporte(obj.valorEstimado) || 0;
  obj.ofertaMasBaja = parseImporte(obj.ofertaMasBaja) || 0;
  obj.ofertaMasAlta = parseImporte(obj.ofertaMasAlta) || 0;
@@ -348,7 +391,7 @@ async function sincronizarDesdeBanner() {
  if (!allData || allData.length === 0) return;
  if (!btn || btn.disabled) return;
  btn.disabled = true;
- btn.textContent = '⏳ Sincronizando...';
+ btn.textContent = 'Sincronizando...';
  if (status) { status.textContent = ''; status.style.color = 'var(--text2)'; }
  try {
  if (!window.currentUser) throw new Error('Sin sesión activa');
@@ -420,6 +463,32 @@ async function cargarDatosDesdeSupabase(forzar = true) {
  return;
  }
  console.log('[BBDD] Descargados', allRows.length, 'registros');
+
+ // ── DIAGNÓSTICO: mostrar qué contienen los campos críticos ──
+ if (allRows.length > 0) {
+ const muestra = allRows.slice(0, 3);
+ console.group('[BBDD DIAGNÓSTICO] Primeras 3 filas — campos críticos:');
+ muestra.forEach((r, i) => {
+ console.log(`Fila ${i+1}:`, {
+ importe_adjudicacio_1_: r.importe_adjudicacio_1_,
+ presupuesto_base_c_: r.presupuesto_base_c_,
+ el_adjudicatario_es_: r.el_adjudicatario_es_,
+ adjudicatario_licitaci_: r.adjudicatario_licitaci_,
+ estado: r.estado,
+ });
+ });
+ const conImporte = allRows.filter(r => r.importe_adjudicacio_1_ !== null && r.importe_adjudicacio_1_ !== undefined && r.importe_adjudicacio_1_ !== '').length;
+ const conPresupuesto = allRows.filter(r => r.presupuesto_base_c_ !== null && r.presupuesto_base_c_ !== undefined && r.presupuesto_base_c_ !== '').length;
+ const conPyme = allRows.filter(r => r.el_adjudicatario_es_ === 'Sí' || r.el_adjudicatario_es_ === 'true').length;
+ const conAdj = allRows.filter(r => r.adjudicatario_licitaci_ !== null && r.adjudicatario_licitaci_ !== undefined && r.adjudicatario_licitaci_ !== '').length;
+ console.log(`Registros con importe_adjudicacio_1_ relleno: ${conImporte}/${allRows.length}`);
+ console.log(`Registros con presupuesto_base_c_ relleno: ${conPresupuesto}/${allRows.length}`);
+ console.log(`Registros con el_adjudicatario_es_ = true/Sí: ${conPyme}/${allRows.length}`);
+ console.log(`Registros con adjudicatario: ${conAdj}/${allRows.length}`);
+ console.log('Columnas disponibles en Supabase:', Object.keys(allRows[0]));
+ console.groupEnd();
+ }
+
  const headers = COL_MAP.map(c => c.match[0]);
  const dataRows = allRows.map(row => COL_MAP.map(col => row[KEY_TO_COL[col.key]] ?? ''));
  const rows = [headers, ...dataRows];
@@ -428,7 +497,7 @@ async function cargarDatosDesdeSupabase(forzar = true) {
  console.log('[BBDD] Carga completada. allData length:', allData?.length);
  } catch(err) {
  console.error('[BBDD] Error:', err);
- if (msgEl) msgEl.textContent = ` Error: ${err.message}`;
+ if (msgEl) msgEl.textContent = `Error: ${err.message}`;
  if (statusEl) statusEl.style.color = 'var(--red)';
  } finally {
  if (statusEl) setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
