@@ -760,8 +760,8 @@ function _renderLogPage(page) {
  <tbody>
  ${pageRows.map(row => {
  const changes = row.sync_changes || [];
- const inserted = changes.filter(c => c.action === 'insert').length;
- const updated = changes.filter(c => c.action === 'update').length;
+ const inserted = row.rows_inserted ?? changes.filter(c => c.action === 'insert').length;
+ const updated = row.rows_updated ?? changes.filter(c => c.action === 'update').length;
  const st = String(row.status || '').toLowerCase();
  const completed = changes.length > 0 || st === 'applied';
  const canRollback = st !== 'rolled_back' && st !== 'failed';
